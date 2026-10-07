@@ -29,6 +29,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.motionx.app.R
 import com.motionx.app.model.MotionXUiState
+import com.motionx.app.model.AlertChannel
+import com.motionx.app.model.ThresholdAlertSettings
 import com.motionx.app.model.SensorProblem
 import com.motionx.app.model.VibrationStatus
 import com.motionx.app.ui.theme.MotionXTheme
@@ -39,6 +41,8 @@ fun MainScreen(
     state: MotionXUiState,
     modifier: Modifier = Modifier,
     onToggleMonitoring: () -> Unit = {},
+    onAlertChange: (AlertChannel, ThresholdAlertSettings) -> Unit = { _, _ -> },
+    lastAlert: Set<AlertChannel> = emptySet(),
     cameraContent: @Composable () -> Unit = { Text(stringResource(R.string.camera_title)) },
 ) {
     val pager = rememberPagerState { 3 }
@@ -64,13 +68,20 @@ fun MainScreen(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 verticalAlignment = Alignment.Top) { page ->
                 when (page) {
-                    0 -> VisualTab(state, cameraContent)
-                    1 -> PhysicalTab(state)
+                    0 -> VisualTab(state, { onAlertChange(AlertChannel.VISUAL, it) }, cameraContent)
+                    1 -> PhysicalTab(state) { onAlertChange(AlertChannel.PHYSICAL, it) }
                     2 -> MeasurementGuide(Modifier.fillMaxSize().padding(20.dp))
                 }
             }
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (lastAlert.isNotEmpty()) {
+                    Text(stringResource(when {
+                        lastAlert.size == 2 -> R.string.alert_both_triggered
+                        AlertChannel.VISUAL in lastAlert -> R.string.alert_visual_triggered
+                        else -> R.string.alert_physical_triggered
+                    }), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
+                }
                 Text(stringResource(when {
                     state.cameraProblem != null -> R.string.camera_error_status
                     state.isMonitoring && state.visualMotion?.isTracking == true -> R.string.tracking_status
@@ -93,7 +104,8 @@ fun MainScreen(
 }
 
 @Composable
-private fun VisualTab(state: MotionXUiState, cameraContent: @Composable () -> Unit) {
+private fun VisualTab(state: MotionXUiState, onAlertChange: (ThresholdAlertSettings) -> Unit,
+    cameraContent: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Card(Modifier.fillMaxWidth()) {
@@ -113,9 +125,10 @@ private fun VisualTab(state: MotionXUiState, cameraContent: @Composable () -> Un
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.visual_graph_title), style = MaterialTheme.typography.labelSmall)
-                VisualMotionGraph(state.visualMotionHistory)
+                VisualMotionGraph(state.visualMotionHistory, state.visualAlert.takeIf { it.enabled }?.threshold)
             }
         }
+        ThresholdAlertControls(AlertChannel.VISUAL, state.visualAlert, onAlertChange)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             MeasurementCard(stringResource(R.string.position_x), state.visualMotion?.takeIf { it.isTracking }?.x,
                 stringResource(R.string.unit_pixels), Modifier.weight(1f),
@@ -129,7 +142,7 @@ private fun VisualTab(state: MotionXUiState, cameraContent: @Composable () -> Un
 }
 
 @Composable
-private fun PhysicalTab(state: MotionXUiState) {
+private fun PhysicalTab(state: MotionXUiState, onAlertChange: (ThresholdAlertSettings) -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         MeasurementCard(stringResource(R.string.physical_vibration), state.vibration?.magnitude,
@@ -170,9 +183,10 @@ private fun PhysicalTab(state: MotionXUiState) {
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(stringResource(R.string.graph_title), style = MaterialTheme.typography.labelSmall)
-                VibrationGraph(state.vibrationHistory)
+                VibrationGraph(state.vibrationHistory, state.physicalAlert.takeIf { it.enabled }?.threshold)
             }
         }
+        ThresholdAlertControls(AlertChannel.PHYSICAL, state.physicalAlert, onAlertChange)
         Text(stringResource(R.string.sensor_explanation),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

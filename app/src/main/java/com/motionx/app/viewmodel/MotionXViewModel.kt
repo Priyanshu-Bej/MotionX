@@ -1,6 +1,8 @@
 package com.motionx.app.viewmodel
 
 import androidx.lifecycle.ViewModel
+import com.motionx.app.model.AlertChannel
+import com.motionx.app.model.ThresholdAlertSettings
 import com.motionx.app.model.MotionXUiState
 import com.motionx.app.model.CameraProblem
 import com.motionx.app.model.VisualMotionData
@@ -14,6 +16,16 @@ import kotlinx.coroutines.flow.update
 class MotionXViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(MotionXUiState())
     val uiState: StateFlow<MotionXUiState> = _uiState.asStateFlow()
+
+    fun setAlert(channel: AlertChannel, settings: ThresholdAlertSettings) {
+        if (!settings.isValid(channel)) return
+        _uiState.update {
+            when (channel) {
+                AlertChannel.VISUAL -> it.copy(visualAlert = settings)
+                AlertChannel.PHYSICAL -> it.copy(physicalAlert = settings)
+            }
+        }
+    }
 
     fun setCameraReady(ready: Boolean) {
         _uiState.update { it.copy(cameraReady = ready) }

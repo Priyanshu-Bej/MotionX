@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
+import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.motionx.app.R
 import com.motionx.app.camera.CameraPreview
 import com.motionx.app.model.CameraProblem
+import com.motionx.app.model.AlertChannel
+import com.motionx.app.alerts.AlertFeedback
+import com.motionx.app.alerts.ThresholdAlertEngine
 import com.motionx.app.model.SensorProblem
 import com.motionx.app.sensors.AccelerometerSource
 import com.motionx.app.sensors.SensorUnavailableException
@@ -52,6 +56,24 @@ fun MotionXRoute(viewModel: MotionXViewModel = viewModel()) {
     var permission by remember { mutableStateOf(hasPermission()) }
     var resumed by remember { mutableStateOf(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val feedback = remember(context.applicationContext) { AlertFeedback(context.applicationContext) }
+    var lastAlert by remember { mutableStateOf(emptySet<AlertChannel>()) }
+    DisposableEffect(feedback) { onDispose { feedback.release() } }
+    LaunchedEffect(resumed, viewModel, feedback) {
+        if (resumed) {
+            val engine = ThresholdAlertEngine()
+            viewModel.uiState.collect { current ->
+                if (!current.isMonitoring) {
+                    feedback.stop()
+                    lastAlert = emptySet()
+                }
+                engine.evaluate(current, SystemClock.elapsedRealtime())?.let { alert ->
+                    lastAlert = alert.channels
+                    feedback.play(alert)
+                }
+            }
+        }
+    }
     val accelerometer = remember(context.applicationContext) { AccelerometerSource(context.applicationContext) }
     LaunchedEffect(state.isMonitoring, state.monitoringSession, resumed) {
         if (state.isMonitoring && resumed) {
@@ -70,14 +92,15 @@ fun MotionXRoute(viewModel: MotionXViewModel = viewModel()) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> { permission = hasPermission(); resumed = true }
-                Lifecycle.Event.ON_PAUSE -> { resumed = false; viewModel.stopMonitoring() }
+                Lifecycle.Event.ON_PAUSE -> { resumed = false; feedback.stop(); viewModel.stopMonitoring() }
                 else -> Unit
             }
         }
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer); viewModel.stopMonitoring() }
     }
-    MainScreen(state, onToggleMonitoring = viewModel::toggleMonitoring, cameraContent = {
+    MainScreen(state, onToggleMonitoring = viewModel::toggleMonitoring,
+        onAlertChange = viewModel::setAlert, lastAlert = lastAlert, cameraContent = {
         when {
             !permission -> Column(Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

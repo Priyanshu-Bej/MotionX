@@ -9,6 +9,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class MotionXViewModelTest {
+    @Test fun alertSettingsValidateAndSurviveSessionChangesWithoutReplacingReadings() {
+        val model = MotionXViewModel()
+        model.setCameraReady(true)
+        model.toggleMonitoring()
+        model.onVisualMotion(reading)
+        val setting = com.motionx.app.model.ThresholdAlertSettings(0.2f, enabled = true)
+        model.setAlert(com.motionx.app.model.AlertChannel.PHYSICAL, setting)
+        assertEquals(reading, model.uiState.value.visualMotion)
+        assertEquals(setting, model.uiState.value.physicalAlert)
+        for (invalid in listOf(0f, -1f, Float.NaN, Float.POSITIVE_INFINITY, 101f)) {
+            model.setAlert(com.motionx.app.model.AlertChannel.PHYSICAL, setting.copy(threshold = invalid))
+            assertEquals(setting, model.uiState.value.physicalAlert)
+        }
+        model.stopMonitoring()
+        model.toggleMonitoring()
+        assertEquals(setting, model.uiState.value.physicalAlert)
+        assertFalse(model.uiState.value.visualAlert.enabled)
+    }
     private val reading = VisualMotionData(10f, 20f, 4f, 100, true)
     private fun vibration(time: Long) = VibrationData(0f, 0f, 9.8f, 0.04f,
         0.05f, 0.1f, VibrationStatus.VIBRATING, time,

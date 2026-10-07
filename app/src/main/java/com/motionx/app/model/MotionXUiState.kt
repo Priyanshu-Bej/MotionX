@@ -14,4 +14,6 @@ data class MotionXUiState(
     val sensorProblem: SensorProblem? = null,
     val vibrationHistory: List<VibrationData> = emptyList(),
     val monitoringSession: Long = 0,
+    val visualAlert: ThresholdAlertSettings = ThresholdAlertSettings(10f),
+    val physicalAlert: ThresholdAlertSettings = ThresholdAlertSettings(0.1f),
 )

@@ -19,3 +19,7 @@ Use real camera/sensor readings. Handle permissions and lifecycle cleanup and ke
 ## Validation scope
 
 The user prefers short, focused checks. Reuse passing build/lint/test results until a relevant change or failure warrants rerunning them. For integration changes, run affected sensor/ViewModel tests and a short combined-device check. The user reported passing the basic physical-marker, stationary settling, and combined tab-switch checks on 2026-10-07. Do not repeat these, the full suite, or previously verified setup/lifecycle checks without a relevant change or specific regression. Numerical calibration and rotation/permission edge cases remain pending.
+
+## Threshold alerts
+
+Visual alerts use displacement in px; Physical alerts use the plotted smoothed magnitude in g, not RMS. Preserve the shared 3-second cooldown and valid-low rearm policy when changing feedback: the phone’s own beep/vibration can affect both pipelines. Defaults are off; settings are session-independent but not persisted across process death. Cancel feedback on stop/background and keep evaluation independent of the selected tab.
