@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.motionx.app.R
@@ -48,6 +49,7 @@ fun MainScreen(
     val pager = rememberPagerState { 3 }
     val scope = rememberCoroutineScope()
     val tabs = listOf(R.string.tab_visual, R.string.tab_physical, R.string.tab_guide)
+    val tabSensors = listOf(R.string.tab_sensor_camera, R.string.tab_sensor_accelerometer, null)
     Scaffold(modifier = modifier) { insets ->
         Column(Modifier.fillMaxSize().padding(insets)) {
             Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
@@ -59,7 +61,16 @@ fun MainScreen(
                 tabs.forEachIndexed { index, title ->
                     Tab(selected = pager.currentPage == index,
                         onClick = { scope.launch { pager.animateScrollToPage(index) } },
-                        text = { Text(stringResource(title)) })
+                        text = {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(stringResource(title))
+                                tabSensors[index]?.let { sensor ->
+                                    Text(stringResource(sensor),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        textAlign = TextAlign.Center)
+                                }
+                            }
+                        })
                 }
             }
             // Retain all three pages: removing CameraPreview would unbind the camera,

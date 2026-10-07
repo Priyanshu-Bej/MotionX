@@ -55,9 +55,9 @@
     <string name="alert_applied_value">Applied: %1$.4g %2$s</string>
     <string name="alert_invalid">Enter a number greater than 0 and at most %1$.0f %2$s.</string>
     <string name="alert_apply">Apply threshold</string>
-    <string name="alert_sound">Play warning buzzer</string>
+    <string name="alert_sound">Play alert sound</string>
     <string name="alert_vibrate">Vibrate phone</string>
-    <string name="alert_feedback_note">One alert per crossing. Waits 3 seconds, then rearms below 90% of the threshold. The warning buzzer plays three pulses. Sound and vibration follow phone settings. Feedback can affect both graphs; turn it off for clean measurements.</string>
+    <string name="alert_feedback_note">One alert per crossing. Waits 3 seconds, then rearms below 90% of the threshold. The alert sound plays for up to 2.5 seconds. Sound and vibration follow phone settings. Feedback can affect both graphs; turn it off for clean measurements.</string>
     <string name="alert_graph_line">Alert threshold: %1$.4g %2$s · dashed line</string>
     <string name="alert_visual_triggered">Last threshold alert: Visual</string>
     <string name="alert_physical_triggered">Last threshold alert: Physical</string>
@@ -77,6 +77,8 @@
     <string name="tab_visual">Visual</string>
     <string name="tab_physical">Physical</string>
     <string name="tab_guide">Guide</string>
+    <string name="tab_sensor_camera">Rear camera</string>
+    <string name="tab_sensor_accelerometer">Accelerometer</string>
     <string name="tabs_shared_monitoring">Monitoring uses both camera and accelerometer on every tab.</string>
     <string name="tabs_camera_setup">Open Visual to check camera access before starting.</string>
     <string name="visual_motion_hint">Distance from starting point</string>

@@ -20,7 +20,7 @@ The current app provides three steps:
 
 1. **See:** point a steady rear camera at a black marker. Visual shows displacement from its starting position in camera pixels and a live graph.
 2. **Feel:** place the phone securely on the surface being investigated. Physical shows gravity-suppressed acceleration in g, RMS, peak, a live graph, and an estimated dominant frequency when the signal is suitable.
-3. **React:** choose separate px and g limits. A crossing can produce a warning buzzer, vibration, and an on-screen alert. Both tabs share monitoring controls.
+3. **React:** choose separate px and g limits. A crossing can produce a alert sound, vibration, and an on-screen alert. Both tabs share monitoring controls.
 
 The camera measures relative image motion; the accelerometer measures the phone itself. These are complementary observations, not interchangeable units or automatic corroboration of the same object's motion. The phone must be mechanically coupled to a surface to measure that surface's transmitted acceleration.
 
@@ -60,7 +60,7 @@ Use these examples to explain why observing motion matters. The sources establis
 >
 > Our starting point is a student or maker with a small moving setup: can they see how it moves and get an alert when it crosses a limit they choose?
 >
-> That is what MotionX demonstrates. With the phone held steady, Visual tracks a black marker's displacement in pixels. With the phone secured on the surface, Physical shows acceleration reaching the phone in g. Both have live graphs and adjustable thresholds, with a warning buzzer and vibration.
+> That is what MotionX demonstrates. With the phone held steady, Visual tracks a black marker's displacement in pixels. With the phone secured on the surface, Physical shows acceleration reaching the phone in g. Both have live graphs and adjustable thresholds, with a alert sound and vibration.
 >
 > Today we will demonstrate those steps using a marker and a desk. This prototype observes motion and threshold crossings; diagnosing equipment faults is future work that needs validation.
 
@@ -72,7 +72,7 @@ The opening's appliance and equipment claims are supported by the Samsung and Fl
 - Arrange the phone so the audience can see the screen. Use an existing screen-mirroring setup only if it already works; otherwise show the phone directly.
 - Confirm camera permission and CAMERA READY. The current shared Start button requires a ready camera even when demonstrating Physical.
 - Configure alert settings after the final app launch: they default to off and do not survive process death. A restart may require re-enabling them.
-- For sound, select phone Sound mode, make Notifications volume audible, and enable Play warning buzzer. Media volume alone does not control this buzzer. Perform one audible rehearsal; delivery has not yet been independently confirmed in the engineering record.
+- For sound, select phone Sound mode, make Notifications volume audible, and enable Play alert sound. Media volume alone does not control this alert sound. It uses the supplied MP3, capped at 2.5 seconds per crossing. Perform one audible rehearsal; delivery has not yet been independently confirmed in the engineering record.
 - Choose thresholds from the rehearsal: first observe the resting range, then the intended movement. Put the threshold above resting fluctuations and below a repeatable deliberate movement. Default 10 px / 0.1 g values are starting points, not universal recommendations or safety limits.
 - Enable only the alert channel being demonstrated. Keep feedback off while discussing clean measurements; the phone's own beep/vibration can influence both pipelines.
 - Presenter explains the task; a second person operates the marker and tabs. Agree on the cue “cross the limit.” If presenting alone, prepare the marker and phone placement before starting.
