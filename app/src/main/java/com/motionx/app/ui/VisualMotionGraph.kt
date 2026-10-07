@@ -38,7 +38,7 @@ fun VisualMotionGraph(readings: List<VisualMotionData>, threshold: Float? = null
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.visual_graph_scale, ceiling), style = MaterialTheme.typography.labelSmall)
         threshold?.let {
-            Text(stringResource(R.string.alert_graph_line, it, "px"),
+            Text(stringResource(R.string.alert_graph_line, it, stringResource(R.string.unit_pixels_name)),
                 style = MaterialTheme.typography.labelSmall, color = thresholdColor)
         }
         Canvas(Modifier.fillMaxWidth().height(100.dp).padding(3.dp)

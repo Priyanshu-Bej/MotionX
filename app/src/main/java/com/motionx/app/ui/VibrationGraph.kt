@@ -30,7 +30,7 @@ fun VibrationGraph(readings: List<VibrationData>, threshold: Float? = null) {
     Column {
         Text(stringResource(R.string.graph_scale, ceiling), style = MaterialTheme.typography.labelSmall)
         threshold?.let {
-            Text(stringResource(R.string.alert_graph_line, it, "g"),
+            Text(stringResource(R.string.alert_graph_line, it, stringResource(R.string.unit_g_name)),
                 style = MaterialTheme.typography.labelSmall, color = thresholdColor)
         }
         Canvas(Modifier.fillMaxWidth().height(100.dp)) {

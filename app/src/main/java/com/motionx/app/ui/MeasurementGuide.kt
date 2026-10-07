@@ -28,6 +28,8 @@ internal fun MeasurementGuide(modifier: Modifier = Modifier) {
     Column(modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.measurement_guide), style = MaterialTheme.typography.titleLarge)
+        GuideSection(stringResource(R.string.guide_words_title), stringResource(R.string.guide_words))
+        MeasurementFlows()
         GuideSection(stringResource(R.string.guide_alert_title), stringResource(R.string.guide_alert))
         GuideSection(stringResource(R.string.guide_g_title), stringResource(R.string.guide_g))
         GuideSection(stringResource(R.string.frequency_title), stringResource(R.string.guide_frequency))

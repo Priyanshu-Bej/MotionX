@@ -16,6 +16,8 @@ Lead with this observable task. Automatic fault diagnosis, failure prediction, i
 
 ## Solution and value
 
+For a visual explanation, open **Guide → How both tabs work** and expand the Visual, Physical, or shared alert flow. The [README flow diagrams](../README.md#how-both-tabs-work--flow-diagrams) provide the same paths for slides and developer handoff. They explain the pipeline; they do not display live execution status.
+
 The current app provides three steps:
 
 1. **See:** point a steady rear camera at a black marker. Visual shows displacement from its starting position in camera pixels and a live graph.

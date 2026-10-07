@@ -39,7 +39,7 @@ internal fun ThresholdAlertControls(
     val parsed = input.trim().replace(',', '.').toFloatOrNull()
     val valid = parsed != null && settings.copy(threshold = parsed).isValid(channel)
     val focus = LocalFocusManager.current
-    val unit = stringResource(if (channel == AlertChannel.VISUAL) R.string.unit_pixels else R.string.unit_g)
+    val unit = stringResource(if (channel == AlertChannel.VISUAL) R.string.unit_pixels_name else R.string.unit_g_name)
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             AlertSwitch(stringResource(if (channel == AlertChannel.VISUAL)

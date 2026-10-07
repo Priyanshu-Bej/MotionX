@@ -10,6 +10,8 @@ Showcase preparation: [demo plan and presenter script](docs/DEMO.md) covers the 
 
 ## Current handoff — 2026-10-07
 
+- **Unit names and pronunciation:** measurement cards now spell out pixels (px), standard gravity (g), hertz (Hz), and root mean square (RMS), with written pronunciation hints. Raw axes explain meters per second squared (m/s²), distinct from square meters (m²). Graph captions, alert controls, status explanations, and flow diagrams expand their units; Guide includes a glossary for units, axis labels, peak, and accelerometer. Pronunciation hints are text, not spoken audio. Values and algorithms are unchanged. `assembleDebug` and `git diff --check` passed; installed/launched on the S24 FE and inspected the Physical screen showing the expanded g/Hz names and pronunciation hints. Every scroll position, large-font layout, and screen-reader pronunciation was not checked; no sensor or alert-policy tests repeated for this text-only behavior change.
+- **Flow diagrams:** Guide now includes expandable Visual/rear-camera, Physical/accelerometer, and shared threshold-alert diagrams. Physical shows magnitude/smoothing, RMS/status, and signed-axis frequency as parallel paths; alert inputs are px or smoothed g. The diagrams below document tracking loss, shared start/stop, cooldown/rearm, and feedback cancellation for developer handoff. This is explanatory UI only. `assembleDebug` and `git diff --check` passed; installed/launched on the S24 FE and confirmed all three diagram controls appear in Guide. Expanded diagrams and larger-font layouts were not fully verified on-device. No sensor or alert-policy suite repeated.
 - **Tab sensor labels:** Visual now shows **Rear camera** beneath its title; Physical shows **Accelerometer**. These match the rear CameraX selector and `TYPE_ACCELEROMETER` source. Guide remains a help tab. Labels use localized string resources and centered secondary text. This UI-only change preserves monitoring and navigation. `assembleDebug` passed; installed and launched on the S24 FE, and inspected a screenshot confirming both sensor labels fit without clipping. No sensor tests or broad device checks repeated; larger font settings and other screen sizes were not checked.
 - **Implemented:** Phase 1 camera/marker tracking plus Phase 2 accelerometer readings, gravity suppression, smoothed magnitude, RMS/peak, physical status, raw axes, and separate live visual-displacement (px) and physical-vibration (g) graphs. Both pipelines share start/stop and foreground lifecycle handling.
 - **Integration:** merged `origin/feature/phase2-accelerometer` (`ba432db`) into `develop`. Kept Phase 1 camera code and shared data contracts, combined README changes, and removed duplicate JUnit declarations introduced by the merge.
@@ -37,6 +39,77 @@ At each handoff, record:
 - Known issues, blockers, next concrete task, and responsible developer when known.
 
 Do not put credentials, machine-specific SDK paths, or private conversation history in this file. Repository-wide AI instructions are in [AGENTS.md](AGENTS.md).
+
+## How both tabs work — flow diagrams
+
+Open **Guide → How both tabs work** in the app to expand the matching diagrams. Camera permission and CAMERA READY are required by the shared Start button. Starting runs both measurement pipelines; selecting a tab only changes the view. All processing is local to the phone.
+
+### Visual — rear camera
+
+```mermaid
+flowchart TD
+    start[Camera ready + Start monitoring] --> camera[Rear camera images]
+    camera --> tracker[Find and track black marker]
+    tracker --> valid{Marker tracked?}
+    valid -->|Yes| reference[Use first tracked position as reference]
+    reference --> displacement[Calculate X/Y and displacement in camera pixels]
+    displacement --> screen[Visual reading + 10-second px graph]
+    displacement --> alert[Valid displacement to Visual threshold check]
+    valid -->|No| lost[Unavailable reading + graph gap; no alert]
+    lost --> reset[Clear reference; reacquire on later frames]
+    reset --> tracker
+```
+
+Keep the phone steady: camera movement also changes image displacement. Camera-buffer px are not millimeters or display pixels. Tracking loss and a new session reset the reference.
+
+### Physical — accelerometer
+
+```mermaid
+flowchart TD
+    start[Shared Start monitoring] --> sensor[Accelerometer X/Y/Z + timestamps]
+    sensor --> raw[Display raw axes in m/s² including gravity]
+    sensor --> gravity[Estimate and subtract gravity; convert to g]
+    gravity --> magnitude[Unsmoothed vector magnitude]
+    magnitude --> smooth[Time-based smoothing]
+    smooth --> graph[Current g + 10-second graph]
+    smooth --> peak[Session maximum after warm-up]
+    smooth --> alert[Current smoothed g to Physical threshold check]
+    magnitude --> rms[Rolling RMS]
+    rms --> status[NORMAL / VIBRATING / HIGH]
+    gravity --> signed[Signed X/Y/Z at full sensor rate]
+    signed --> spectrum[2-second window; resample; Hann window; DFT]
+    spectrum --> quality{Signal and frequency pass quality checks?}
+    quality -->|Yes| hz[Dominant frequency estimate in Hz]
+    quality -->|No| unavailable[Collecting / weak / no clear peak]
+```
+
+The phone must be mechanically coupled to the surface. The UI publishes physical readings at most 10 times/second; frequency processing receives full-rate signed axes. RMS/status, smoothed magnitude/peak, and frequency are distinct calculations. The Physical alert compares **smoothed g**, not RMS, peak, or Hz. See Phase 3 for sampling and accuracy limits.
+
+### Shared alerts and lifecycle
+
+```mermaid
+flowchart TD
+    input[Published Visual px or Physical smoothed g] --> valid{Fresh valid reading and alerts enabled?}
+    valid -->|No| wait[Wait for next reading]
+    valid -->|Yes| cooldown{Shared 3-second cooldown finished?}
+    cooldown -->|No| wait
+    cooldown -->|Yes| low{Reading below 90 percent of threshold?}
+    low -->|Yes| rearm[Rearm this channel]
+    rearm --> wait
+    low -->|No| crossing{Channel armed and reading at or above threshold?}
+    crossing -->|No| wait
+    crossing -->|Yes| event[One event; latch triggering channel; start shared cooldown]
+    event --> message[Display last-alert message]
+    event --> feedback{Sound or vibration enabled?}
+    feedback -->|Yes| disarm[Disarm both channels against feedback motion]
+    disarm --> outputs[MP3 up to 2.5 seconds and/or 120 ms vibration; phone settings apply]
+    outputs --> wait
+    feedback -->|No| wait
+    wait --> input
+    lifecycle[Stop / background / camera failure] --> stop[Stop monitoring and feedback; clear readings and histories]
+```
+
+Settings changes skip the existing sample; missing data cannot rearm. Simultaneous crossings produce one event. Held-high values do not repeatedly alarm. Feedback may affect measurements even with the cooldown. Stopping leaves the camera preview available while foregrounded; backgrounding releases it. Sensor failure clears Physical readings while valid Visual alerts remain available. Guide diagrams are explanations, not live pipeline status indicators.
 
 ## Development phases
 
