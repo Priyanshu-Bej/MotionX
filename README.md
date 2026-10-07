@@ -10,12 +10,12 @@ Everything runs locally on the phone. Prioritize a working prototype, real senso
 
 - **Implemented:** Phase 1 camera/marker tracking plus Phase 2 accelerometer readings, gravity suppression, smoothed magnitude, RMS/peak, physical status, raw axes, and separate live visual-displacement (px) and physical-vibration (g) graphs. Both pipelines share start/stop and foreground lifecycle handling.
 - **Integration:** merged `origin/feature/phase2-accelerometer` (`ba432db`) into `develop`. Kept Phase 1 camera code and shared data contracts, combined README changes, and removed duplicate JUnit declarations introduced by the merge.
-- **Validation:** merged debug build and 14 focused tests passed (8 vibration-analyzer + 6 ViewModel). Installed on S24 FE / Android 16; observed real magnitude, RMS, peak, axes, physical status, and graph with the camera active. Backgrounding released both sensor and camera connections; returning showed idle controls and cleared readings. No AndroidRuntime errors appeared during this smoke check. Existing camera tests and lint were not rerun. Physical-marker verification remains deferred by the user.
-- **Current phase:** Phase 1 and Phase 2 implementation integrated; combined device checks and measurement calibration are separate validation steps, not completed accuracy claims.
-- **Next step:** run a controlled stationary/moving-phone accuracy check and a real-marker demo together. Tune thresholds from those results before optional features; implementation and basic integration checks are complete.
+- **Validation:** merged debug build and 14 focused tests passed (8 vibration-analyzer + 6 ViewModel). Installed on S24 FE / Android 16; observed real magnitude, RMS, peak, axes, physical status, and graph with the camera active. Backgrounding released both sensor and camera connections; returning showed idle controls and cleared readings. No AndroidRuntime errors appeared during this smoke check. Existing camera tests and lint were not rerun. The user subsequently reported passing the stationary, marker-motion/loss, and combined tab-switch checks; see the user acceptance record below.
+- **Current phase:** Phase 1 and Phase 2 implementation integrated, with basic functional acceptance reported by the user. Numerical calibration, rotation/overlay alignment, permission edge cases, and a longer demo remain separate follow-ups.
+- **Next step:** capture numerical stationary/moving reference measurements before tuning filters or thresholds. Dominant-frequency analysis (Hz) is the proposed next optional feature, not yet implemented or started. Do not repeat the passed functional checks without a relevant change.
 - **Open decisions:** on-device threshold calibration and observed sampling rate; default filter parameters are documented below.
-- **Latest change:** separated the UI into **Visual**, **Physical**, and **Guide** tabs with tap/swipe navigation and independent scroll positions. The shared start/stop control stays visible. All pages remain composed so tab switches preserve the camera binding, tracking reference, sensor session, and histories; both pipelines continue while monitoring on any tab. Guide explanations are now a full page instead of a dialog. Debug build passed and the APK installed/launched on the S24 FE. A focused device check showed all three tabs, the full-page Guide, live physical readings after tab switches, and the shared Stop control. Camera service confirmed MotionX remained connected while Physical was selected (no rebind during those switches). Controlled marker-reference continuity, rotation, and measurement calibration remain unverified. No unit suite or lint rerun for this navigation change; algorithms and shared model contracts are unchanged.
-- **Previous graph validation:** debug build and all 8 affected ViewModel tests passed, including history bounds, lost-tracking gaps, sensor-state preservation, and resets. Updated APK installed and launched successfully on the connected S24 FE. Camera/sensor algorithm tests and lint were not repeated for that graph-only change. Physical-marker graph validation remains pending.
+- **Latest change:** separated the UI into **Visual**, **Physical**, and **Guide** tabs with tap/swipe navigation and independent scroll positions. The shared start/stop control stays visible. All pages remain composed so tab switches preserve the camera binding, tracking reference, sensor session, and histories; both pipelines continue while monitoring on any tab. Guide explanations are now a full page instead of a dialog. Debug build passed and the APK installed/launched on the S24 FE. A focused device check showed all three tabs, the full-page Guide, live physical readings after tab switches, and the shared Stop control. Camera service confirmed MotionX remained connected while Physical was selected (no rebind during those switches). The user subsequently confirmed stream continuity across tab switches. Rotation and measurement calibration remain unverified. No unit suite or lint rerun for this navigation change; algorithms and shared model contracts are unchanged.
+- **Previous graph validation:** debug build and all 8 affected ViewModel tests passed, including history bounds, lost-tracking gaps, sensor-state preservation, and resets. Updated APK installed and launched successfully on the connected S24 FE. Camera/sensor algorithm tests and lint were not repeated for that graph-only change. Physical-marker graph behavior was subsequently reported working by the user.
 
 ## Keep this README current
 
@@ -39,7 +39,7 @@ Do not put credentials, machine-specific SDK paths, or private conversation hist
 | **1 — Visual motion implementation** | Camera permission, live preview, marker tracking, displacement, visual UI, and camera lifecycle | Real visual motion updates reliably on the phone |
 | **2 — Physical sensors and integration** | Accelerometer collection, filtering, vibration metrics, graph/status, and integration with the visual pipeline | Both real data streams work together reliably on the phone |
 
-Phase numbers describe feature scope. Phase 1 and Phase 2 were developed in parallel after Phase 0 and are now integrated. The merged app has passed a basic device check; marker acceptance and measurement calibration still need validation.
+Phase numbers describe feature scope. Phase 1 and Phase 2 were developed in parallel after Phase 0 and are now integrated. The merged app has passed a basic device check, and the user has reported working marker tracking, stationary settling, and combined monitoring across tabs. Measurement calibration and the remaining edge-case checks are still pending.
 
 ## Phase 0 — Setup and physical-device readiness
 
@@ -149,7 +149,7 @@ Print [docs/marker.svg](docs/marker.svg), or draw a filled black circle on white
 
 `MotionXUiState.visualMotionHistory` retains at most 150 samples within the time window, including invalid readings to mark gaps. Invalid samples are never plotted as zero; loss/reacquisition and frame gaps longer than 0.5 seconds break the trace. Reacquisition resets the tracker's displacement reference, so each segment starts from its own origin. Stop, background, camera failure, and a fresh session clear the graph; backwards timestamps reset its history. An empty graph prompts the user to acquire a marker.
 
-Focused validation: `./gradlew :app:assembleDebug :app:testDebugUnitTest --tests 'com.motionx.app.viewmodel.MotionXViewModelTest' --no-daemon` passed (8 tests). This verifies history/state behavior; live graph movement with a physical marker still needs the deferred device check.
+Focused validation: `./gradlew :app:assembleDebug :app:testDebugUnitTest --tests 'com.motionx.app.viewmodel.MotionXViewModelTest' --no-daemon` passed (8 tests). This verifies history/state behavior; live graph movement with a physical marker was subsequently reported working by the user.
 
 ### Phase 1 acceptance and demo
 
@@ -157,7 +157,7 @@ Focused validation: `./gradlew :app:assembleDebug :app:testDebugUnitTest --tests
 - [ ] Complete repeated denial/permanent-denial and app-settings recovery checks.
 - [x] Live rear-camera preview appears on the phone in portrait orientation.
 - [ ] Verify tracking-overlay alignment with an actual marker, including device rotation.
-- [ ] A high-contrast marker produces live X/Y position and displacement; losing it shows an unavailable state.
+- [x] Marker displacement and the visual graph respond to movement; removing the marker shows tracking loss (user-reported check on 2026-10-07).
 - [x] Start/stop controls visual monitoring; background/resume releases and restores camera resources correctly on the S24 FE.
 - [ ] Visual monitoring remains responsive during a rehearsed physical-device demo.
 
@@ -165,11 +165,11 @@ Demo: keep the phone steady, point it at a high-contrast marker, start monitorin
 
 Automated checks: seven tracker tests cover known translation, reference reset, lost tracking, low contrast/noise, clipped markers/jump rejection, padded/cropped buffers with pixel stride, and downsampling units. Three ViewModel tests cover readiness gating, rejecting late readings after stop, and camera-error recovery. These tests use synthetic luminance buffers; they do not replace the physical-marker demo.
 
-Keep follow-up validation narrow: reuse the passing build/lint/unit-test results unless relevant code changes. The next device check is one short marker session: acquire tracking, move the marker and confirm px changes, move it out of view to confirm unavailable readings, then rotate and check overlay alignment after restarting monitoring. Avoid repeating setup and lifecycle tests already verified above.
+Keep follow-up validation narrow: reuse the passing build/lint/unit-test results unless relevant code changes. The user has now reported passing marker movement/loss and graph checks. The remaining camera checks are rotation/overlay alignment and permission edge cases. Avoid repeating setup and lifecycle tests already verified above.
 
-Follow-up on 2026-10-07: confirmed the connected phone was displaying the live preview in `CAMERA READY`; the scene contained no marker. The user chose to test with a marker later. No build, lint, or unit tests were rerun during this follow-up, and marker acceptance remains unchecked.
+Follow-up on 2026-10-07: confirmed the connected phone was displaying the live preview in `CAMERA READY`; the scene contained no marker. The user chose to test with a marker later. No build, lint, or unit tests were rerun during this follow-up, and marker acceptance was unchecked at that point; the later user acceptance record below supersedes that deferral.
 
-Device checks on 2026-10-07: installed the final Phase 1 APK on SM-S721B / Android 16. Confirmed portrait preview, start → searching/stop control, unavailable values with no valid marker, and camera permission restoration after revocation. Backgrounded an active monitoring session and confirmed `Active Camera Clients: []`; returning restored the preview in `CAMERA READY` with `START MONITORING` and cleared readings. Preview clipping was corrected and visually rechecked. The observed scene did not contain a suitable black-on-white marker, so live displacement, marker-loss recovery, rotation alignment, and a longer demo are still pending. No sensor implementation was added in this change.
+Device checks on 2026-10-07: installed the final Phase 1 APK on SM-S721B / Android 16. Confirmed portrait preview, start → searching/stop control, unavailable values with no valid marker, and camera permission restoration after revocation. Backgrounded an active monitoring session and confirmed `Active Camera Clients: []`; returning restored the preview in `CAMERA READY` with `START MONITORING` and cleared readings. Preview clipping was corrected and visually rechecked. The observed scene did not contain a suitable black-on-white marker, so live displacement, marker-loss recovery, rotation alignment, and a longer demo were pending at that point. The later user check covers movement and tracking loss; rotation alignment and a longer demo remain pending. No sensor implementation was added in this change.
 
 ## Phase 2 — Physical sensors and integration
 
@@ -212,19 +212,31 @@ Analyzer parameters (defaults in `VibrationAnalyzer.Config`; filter coefficients
 
 Ran `./gradlew :app:assembleDebug :app:testDebugUnitTest --tests 'com.motionx.app.sensors.VibrationAnalyzerTest' --tests 'com.motionx.app.viewmodel.MotionXViewModelTest' --no-daemon`: build succeeded, 14 tests passed. New integration tests verify preserving visual fields, bounded/throttled history, clearing stopped readings, rejecting old sensor sessions, and keeping visual monitoring active when the sensor is unavailable.
 
-On SM-S721B / Android 16, the live screen showed physical magnitude 0.09 g, RMS 0.07 g, peak 0.91 g, raw axes, a `VIBRATING` state, and a changing-history trace. These are observed readings, not calibrated reference values. Sensor service confirmed a successful 10,000 µs registration. After backgrounding, MotionX had zero active sensor connections and the camera client list was empty. On return, the camera was ready, monitoring was stopped, and physical values were unavailable. The actual sample rate, stationary noise floor, status thresholds, and marker-based simultaneous demo remain unvalidated.
+On SM-S721B / Android 16, the live screen showed physical magnitude 0.09 g, RMS 0.07 g, peak 0.91 g, raw axes, a `VIBRATING` state, and a changing-history trace. These are observed readings, not calibrated reference values. Sensor service confirmed a successful 10,000 µs registration. After backgrounding, MotionX had zero active sensor connections and the camera client list was empty. On return, the camera was ready, monitoring was stopped, and physical values were unavailable. The actual sample rate, numerical stationary noise floor, and status thresholds remain unvalidated. The user later reported passing qualitative stationary settling and combined monitoring checks.
 
 ### Phase 2 acceptance and demo
 
 - [x] Real sensor data updates current vibration, RMS, peak, axes, graph, and status live on the S24 FE.
-- [ ] Stationary readings settle after gravity suppression; thresholds are tested on the target phone.
+- [x] Stationary readings settle after gravity suppression (user-reported 20-second desk check on 2026-10-07; no numerical results supplied).
+- [ ] Quantify the stationary noise floor and calibrate thresholds on the target phone.
 - [x] Shared monitoring starts both pipelines; background cancels collection, releases sensor/camera connections, and clears readings on return (short S24 FE check).
 - [x] Missing-sensor state clears physical readings and preserves visual monitoring in a focused ViewModel test; absent-hardware registration failure has not been reproduced on a physical device.
-- [ ] Both pipelines remain responsive together during a rehearsed physical-device demo.
+- [x] Both streams continue without resetting while gently moving the phone and switching tabs (user-reported short check on 2026-10-07).
+- [ ] Complete a longer rehearsed physical-device demo.
 
 Demo: show both live streams while moving a marker and gently moving the phone. The accelerometer measures **the phone's motion**, not a remote object's vibration: moving only the marker should primarily affect the camera reading. Use a suitable mechanically coupled setup when comparing a common vibration source.
 
 Demo narrative: “The camera tells us what we can see moving. The accelerometer tells us what the phone physically feels.” This is a prototype with uncalibrated thresholds, not a validated measurement instrument.
+
+### User-reported functional acceptance — 2026-10-07
+
+After receiving the three-step check, the user confirmed completing all steps and that the app was working:
+
+1. Phone flat on a solid desk for 20 seconds: physical RMS settles near zero.
+2. Phone held fixed while a black marker moves and is removed: displacement, visual graph, and tracking-loss behavior work.
+3. Gentle phone movement and tab switching: both streams continue without resetting.
+
+These are user-reported functional results, not independently observed measurements from this follow-up. No numerical readings, reference signal, or calibration data were supplied. No code, build, hardware check, or test suite was run for this documentation update. Preserve the passing checks; do not ask the user to repeat them without a specific regression or relevant change.
 
 ## Shared data contract and Phase 2 merge handoff
 
@@ -314,7 +326,7 @@ In Phase 2, Developer 2 should focus on sensor logic rather than UI. Coordinate 
 
 ## Build sequence and time budget
 
-The original target is a 90-minute hackathon build. Phase 0 and the parallel pipeline implementation/merge are complete. Focus remaining time on the actual marker and data accuracy, then rehearse the demo.
+The original target is a 90-minute hackathon build. Phase 0 and the parallel pipeline implementation/merge are complete. Basic marker, stationary, and combined-tab checks have now been reported passing by the user. Focus remaining validation on numerical accuracy and the outstanding edge cases, then rehearse the demo.
 
 1. **Phase 0:** finish initialization, build/install, and physical-device launch validation.
 2. **Parallel work:** Developer 1 implements and validates Phase 1 visual motion; Developer 2 independently implements and tests Phase 2 sensor analysis.

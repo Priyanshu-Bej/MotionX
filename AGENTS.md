@@ -2,7 +2,7 @@
 
 ## Project context
 
-Read `README.md` before working. MotionX is a local-only Android hackathon prototype targeting the Samsung Galaxy S24 FE. Keep the app and project name MotionX. Phase 0 is complete. Phase 1 camera work and the fellow developer's Phase 2 accelerometer branch are now integrated on develop. Keep sensor models stable and preserve both pipelines when updating shared state or lifecycle controls. Remaining physical-marker checks and measurement calibration are documented in the README. Use Kotlin, Compose, CameraX, and SensorManager as appropriate. Keep the architecture simple.
+Read `README.md` before working. MotionX is a local-only Android hackathon prototype targeting the Samsung Galaxy S24 FE. Keep the app and project name MotionX. Phase 0 is complete. Phase 1 camera work and the fellow developer's Phase 2 accelerometer branch are now integrated on develop. Keep sensor models stable and preserve both pipelines when updating shared state or lifecycle controls. User-reported basic marker, stationary, and combined-tab checks passed; remaining edge cases and measurement calibration are documented in the README. Use Kotlin, Compose, CameraX, and SensorManager as appropriate. Keep the architecture simple.
 
 ## Required developer/AI handoff
 
@@ -18,4 +18,4 @@ Use real camera/sensor readings. Handle permissions and lifecycle cleanup and ke
 
 ## Validation scope
 
-The user prefers short, focused checks. Reuse passing build/lint/test results until a relevant change or failure warrants rerunning them. For integration changes, run affected sensor/ViewModel tests and a short combined-device check. Physical-marker checks remain deferred by the user; do not repeat the full suite or previously verified setup/lifecycle checks without a reason.
+The user prefers short, focused checks. Reuse passing build/lint/test results until a relevant change or failure warrants rerunning them. For integration changes, run affected sensor/ViewModel tests and a short combined-device check. The user reported passing the basic physical-marker, stationary settling, and combined tab-switch checks on 2026-10-07. Do not repeat these, the full suite, or previously verified setup/lifecycle checks without a relevant change or specific regression. Numerical calibration and rotation/permission edge cases remain pending.
