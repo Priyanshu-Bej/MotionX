@@ -21,7 +21,8 @@ class MotionXViewModel : ViewModel() {
 
     fun cameraFailed(problem: CameraProblem) {
         _uiState.update { it.copy(cameraProblem = problem, cameraReady = false,
-            isMonitoring = false, visualMotion = null, vibration = null, vibrationHistory = emptyList()) }
+            isMonitoring = false, visualMotion = null, visualMotionHistory = emptyList(),
+            vibration = null, vibrationHistory = emptyList()) }
     }
 
     fun retryCamera() {
@@ -31,10 +32,10 @@ class MotionXViewModel : ViewModel() {
     fun toggleMonitoring() {
         _uiState.update {
             if (it.isMonitoring) it.copy(isMonitoring = false, visualMotion = null,
-                vibration = null, vibrationHistory = emptyList())
+                visualMotionHistory = emptyList(), vibration = null, vibrationHistory = emptyList())
             else if (it.cameraReady && it.cameraProblem == null)
                 it.copy(isMonitoring = true, visualMotion = null, vibration = null,
-                    vibrationHistory = emptyList(), sensorProblem = null,
+                    visualMotionHistory = emptyList(), vibrationHistory = emptyList(), sensorProblem = null,
                     monitoringSession = it.monitoringSession + 1)
             else it
         }
@@ -42,11 +43,19 @@ class MotionXViewModel : ViewModel() {
 
     fun stopMonitoring() {
         _uiState.update { it.copy(isMonitoring = false, visualMotion = null,
-            vibration = null, vibrationHistory = emptyList()) }
+            visualMotionHistory = emptyList(), vibration = null, vibrationHistory = emptyList()) }
     }
 
     fun onVisualMotion(data: VisualMotionData) {
-        _uiState.update { if (it.isMonitoring) it.copy(visualMotion = data) else it }
+        _uiState.update {
+            if (!it.isMonitoring) return@update it
+            val previous = it.visualMotion
+            if (previous?.timestamp == data.timestamp) return@update it
+            val history = if (previous != null && data.timestamp < previous.timestamp) emptyList()
+                else it.visualMotionHistory.filter { sample -> data.timestamp - sample.timestamp <= 10_000_000_000L }
+            // Keep invalid samples as gaps, never plot their zero placeholder as real motion.
+            it.copy(visualMotion = data, visualMotionHistory = (history + data).takeLast(150))
+        }
     }
 
     fun onVibration(data: VibrationData, session: Long) {

@@ -24,6 +24,13 @@
     <string name="rms">RMS</string>
     <string name="peak">PEAK</string>
     <string name="graph_title">VIBRATION HISTORY</string>
+    <string name="visual_graph_title">VISUAL MOTION HISTORY</string>
+    <string name="visual_graph_waiting">Start monitoring with a marker in view to see its motion graph.</string>
+    <string name="visual_graph_scale">0–%1$.2f px · last 10 seconds · auto scale</string>
+    <string name="visual_graph_description">Visual displacement over the last ten seconds in camera pixels. Gaps indicate lost tracking.</string>
+    <string name="visual_graph_lost">Tracking lost — gaps indicate unavailable readings.</string>
+    <string name="graph_ten_seconds_ago">−10 s</string>
+    <string name="graph_now">Now</string>
     <string name="waiting_for_samples">Waiting for sensor readings</string>
     <string name="status_idle">IDLE</string>
     <string name="start_monitoring">START MONITORING</string>

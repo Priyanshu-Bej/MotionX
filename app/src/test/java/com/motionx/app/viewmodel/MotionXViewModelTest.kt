@@ -13,6 +13,41 @@ class MotionXViewModelTest {
     private fun vibration(time: Long) = VibrationData(0f, 0f, 9.8f, 0.04f,
         0.05f, 0.1f, VibrationStatus.VIBRATING, time)
 
+    @Test fun visualHistoryIsBoundedKeepsGapsAndPreservesSensorReadings() {
+        val model = MotionXViewModel()
+        model.setCameraReady(true)
+        model.toggleMonitoring()
+        val physical = vibration(1)
+        model.onVibration(physical, model.uiState.value.monitoringSession)
+        repeat(200) { model.onVisualMotion(reading.copy(timestamp = it * 66_666_667L)) }
+        assertEquals(150, model.uiState.value.visualMotionHistory.size)
+        val lost = reading.copy(timestamp = 14_000_000_000L, isTracking = false)
+        model.onVisualMotion(lost)
+        assertEquals(lost, model.uiState.value.visualMotionHistory.last())
+        assertTrue(model.uiState.value.visualMotionHistory.first().timestamp >= 4_000_000_000L)
+        model.onVisualMotion(reading.copy(timestamp = 14_100_000_000L, displacement = 0f))
+        assertFalse(model.uiState.value.visualMotionHistory.dropLast(1).last().isTracking)
+        assertEquals(physical, model.uiState.value.vibration)
+    }
+
+    @Test fun visualHistoryClearsOnStopFailureAndTimestampReset() {
+        val model = MotionXViewModel()
+        model.setCameraReady(true)
+        model.toggleMonitoring()
+        model.onVisualMotion(reading.copy(timestamp = 2_000L))
+        model.onVisualMotion(reading)
+        assertEquals(listOf(reading), model.uiState.value.visualMotionHistory)
+        model.onVisualMotion(reading)
+        assertEquals(1, model.uiState.value.visualMotionHistory.size)
+        model.stopMonitoring()
+        model.onVisualMotion(reading)
+        assertTrue(model.uiState.value.visualMotionHistory.isEmpty())
+        model.toggleMonitoring()
+        model.onVisualMotion(reading)
+        model.cameraFailed(CameraProblem.OPEN_FAILED)
+        assertTrue(model.uiState.value.visualMotionHistory.isEmpty())
+    }
+
     @Test fun sensorUpdatesPreserveCameraAndHistoryStaysBounded() {
         val model = MotionXViewModel()
         model.setCameraReady(true)

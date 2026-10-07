@@ -74,6 +74,12 @@ fun MainScreen(
                 MeasurementCard(stringResource(R.string.physical_vibration), state.vibration?.magnitude,
                     stringResource(R.string.unit_g), Modifier.weight(1f))
             }
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.visual_graph_title), style = MaterialTheme.typography.labelSmall)
+                    VisualMotionGraph(state.visualMotionHistory)
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 MeasurementCard(stringResource(R.string.position_x), state.visualMotion?.takeIf { it.isTracking }?.x,
                     stringResource(R.string.unit_pixels), Modifier.weight(1f))

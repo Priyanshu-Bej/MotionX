@@ -8,12 +8,13 @@ Everything runs locally on the phone. Prioritize a working prototype, real senso
 
 ## Current handoff — 2026-10-07
 
-- **Implemented:** Phase 1 camera/marker tracking plus Phase 2 accelerometer readings, gravity suppression, smoothed magnitude, RMS/peak, physical status, raw axes, and a bounded live graph. Both pipelines share start/stop and foreground lifecycle handling.
+- **Implemented:** Phase 1 camera/marker tracking plus Phase 2 accelerometer readings, gravity suppression, smoothed magnitude, RMS/peak, physical status, raw axes, and separate live visual-displacement (px) and physical-vibration (g) graphs. Both pipelines share start/stop and foreground lifecycle handling.
 - **Integration:** merged `origin/feature/phase2-accelerometer` (`ba432db`) into `develop`. Kept Phase 1 camera code and shared data contracts, combined README changes, and removed duplicate JUnit declarations introduced by the merge.
 - **Validation:** merged debug build and 14 focused tests passed (8 vibration-analyzer + 6 ViewModel). Installed on S24 FE / Android 16; observed real magnitude, RMS, peak, axes, physical status, and graph with the camera active. Backgrounding released both sensor and camera connections; returning showed idle controls and cleared readings. No AndroidRuntime errors appeared during this smoke check. Existing camera tests and lint were not rerun. Physical-marker verification remains deferred by the user.
 - **Current phase:** Phase 1 and Phase 2 implementation integrated; combined device checks and measurement calibration are separate validation steps, not completed accuracy claims.
 - **Next step:** run a controlled stationary/moving-phone accuracy check and a real-marker demo together. Tune thresholds from those results before optional features; implementation and basic integration checks are complete.
 - **Open decisions:** on-device threshold calibration and observed sampling rate; default filter parameters are documented below.
+- **Latest change:** added the visual motion graph below the main measurement cards. Debug build and all 8 affected ViewModel tests passed, including history bounds, lost-tracking gaps, sensor-state preservation, and resets. Updated APK installed and launched successfully on the connected S24 FE. Camera/sensor algorithm tests and lint were not repeated for this graph-only change. Physical-marker graph validation remains pending.
 
 ## Keep this README current
 
@@ -141,6 +142,14 @@ Print [docs/marker.svg](docs/marker.svg), or draw a filled black circle on white
 - Preview and analysis share a `ViewPort`. CameraX output transforms map buffer coordinates to the cropped/rotated preview overlay. The transform API requires an explicit experimental opt-in in CameraX 1.4.2. See the official [image-analysis lifecycle guidance](https://developer.android.com/media/camera/camerax/analyze) and [coordinate-transform API](https://developer.android.com/reference/androidx/camera/view/transform/CoordinateTransform).
 - Start/stop controls visual analysis; preview stays live while idle. Leaving the foreground unbinds camera use cases and stops monitoring. On return, preview resumes, but the user starts a new monitoring session. Session callbacks are discarded after disposal.
 
+### Live visual motion graph
+
+`VisualMotionGraph` plots the same displacement shown by the visual-motion card, in camera-buffer pixels, over the latest 10 seconds. The vertical scale adjusts automatically (minimum 1 px); the horizontal axis runs from −10 s to Now. It uses camera timestamps only, not sensor timestamps, and updates at the analyzer's existing maximum 15 readings/second.
+
+`MotionXUiState.visualMotionHistory` retains at most 150 samples within the time window, including invalid readings to mark gaps. Invalid samples are never plotted as zero; loss/reacquisition and frame gaps longer than 0.5 seconds break the trace. Reacquisition resets the tracker's displacement reference, so each segment starts from its own origin. Stop, background, camera failure, and a fresh session clear the graph; backwards timestamps reset its history. An empty graph prompts the user to acquire a marker.
+
+Focused validation: `./gradlew :app:assembleDebug :app:testDebugUnitTest --tests 'com.motionx.app.viewmodel.MotionXViewModelTest' --no-daemon` passed (8 tests). This verifies history/state behavior; live graph movement with a physical marker still needs the deferred device check.
+
 ### Phase 1 acceptance and demo
 
 - [x] Missing/revoked permission shows the access controls; requesting permission and restoring access returns to live preview on the phone.
@@ -236,7 +245,7 @@ The ViewModel exposes both live streams while monitoring; `vibration` is null wh
 - `MotionXRoute` owns the single collection tied to monitoring/session/foreground state. `MotionXViewModel.onVibration(reading, session)` merges data atomically without replacing visual fields. `monitoringSession` prevents late results from an old collector contaminating a new run.
 - Raw X/Y/Z remain m/s² including gravity; magnitude/RMS/peak are gravity-suppressed g, with the branch’s filter and peak semantics preserved. Neither the sensor model nor the visual model changed during integration.
 - Sensor failures clear physical readings and leave visual monitoring active. A camera failure stops the shared monitoring session. On background both pipelines stop; returning restores camera preview, and monitoring requires Start again.
-- Timestamp clock alignment between camera and sensors is still unverified. The graph uses only sensor timestamps; no correlation or frequency measurement is implied.
+- Timestamp clock alignment between camera and sensors is still unverified. Each graph uses its own producer's timestamps; no correlation or frequency measurement is implied.
 
 ## One-screen UI
 
@@ -245,7 +254,7 @@ Phase 0 provides the shell. Phase 1 activates the camera and visual readings. Ph
 - App name and tagline at the top.
 - Large live camera preview with a small tracking overlay.
 - Large visual motion value in px and physical vibration value in g; include RMS and peak, with compact X/Y/Z readouts.
-- Compact live vibration graph with a bounded history.
+- Separate compact live visual-displacement (px) and physical-vibration (g) graphs with bounded histories.
 - Status indicator and **START MONITORING / STOP MONITORING** button.
 
 Use a dark background, subtle rounded cards, large readable numbers, one primary accent color, minimal shadows, and restrained animation. Use neutral/green for normal, amber for warning, and red for high vibration. Show permission, tracking-loss, and sensor availability states clearly. Keep the style like a professional engineering instrument.
@@ -273,6 +282,7 @@ app/
         MainScreen.kt          # Screen and Compose preview
         MotionXRoute.kt        # Permission, lifecycle, sensor collection
         VibrationGraph.kt      # Bounded physical-vibration trace
+        VisualMotionGraph.kt   # Visual displacement trace with tracking gaps
         Components.kt
         theme/Theme.kt
       viewmodel/MotionXViewModel.kt
