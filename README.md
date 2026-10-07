@@ -8,12 +8,12 @@ Everything runs locally on the phone. Prioritize a working prototype, real senso
 
 ## Current handoff — 2026-10-07
 
-- **Implemented:** Phase 0 scaffold plus Phase 1 runtime camera permission/settings recovery, lifecycle-bound rear-camera preview, lightweight black-marker tracking, transformed tracking overlay, X/Y/displacement readings, visual start/stop, and foreground cleanup. Shared sensor data models remain unchanged.
-- **Not yet integrated:** Phase 2 accelerometer collection/analysis, physical vibration status, and history graph. Physical readings remain unavailable (`—`); your fellow developer owns this pipeline.
-- **Validation:** Phase 1 debug build, 10 JVM tests, and lint passed using JDK 21 / SDK 36. Lint has zero errors and 14 existing warnings (dependency/tool upgrade notices and a backup-rule advisory). Installed on the Samsung Galaxy S24 FE (SM-S721B), Android 16 / API 36; live preview, missing-permission recovery, and visual controls exercised. Physical marker motion, overlay alignment across rotations, and longer demo stability remain to be verified. See the Phase 1 checklist below.
-- **Current phase:** Phase 0 complete. Phase 1 code is implemented with partial device validation; the fellow developer can implement Phase 2 in parallel and merge it afterward.
-- **Next step:** The user will perform the physical-marker check later. Phase 1 implementation is ready, but marker motion/loss and rotation acceptance remain pending. Merge the fellow developer’s Phase 2 sensor pipeline when ready using the contract below, then validate the combined behavior.
-- **Open decisions:** Phase 2 filtering/window settings and vibration thresholds. The Phase 1 marker and displacement reference are documented below.
+- **Implemented:** Phase 1 camera/marker tracking plus Phase 2 accelerometer readings, gravity suppression, smoothed magnitude, RMS/peak, physical status, raw axes, and a bounded live graph. Both pipelines share start/stop and foreground lifecycle handling.
+- **Integration:** merged `origin/feature/phase2-accelerometer` (`ba432db`) into `develop`. Kept Phase 1 camera code and shared data contracts, combined README changes, and removed duplicate JUnit declarations introduced by the merge.
+- **Validation:** merged debug build and 14 focused tests passed (8 vibration-analyzer + 6 ViewModel). Installed on S24 FE / Android 16; observed real magnitude, RMS, peak, axes, physical status, and graph with the camera active. Backgrounding released both sensor and camera connections; returning showed idle controls and cleared readings. No AndroidRuntime errors appeared during this smoke check. Existing camera tests and lint were not rerun. Physical-marker verification remains deferred by the user.
+- **Current phase:** Phase 1 and Phase 2 implementation integrated; combined device checks and measurement calibration are separate validation steps, not completed accuracy claims.
+- **Next step:** run a controlled stationary/moving-phone accuracy check and a real-marker demo together. Tune thresholds from those results before optional features; implementation and basic integration checks are complete.
+- **Open decisions:** on-device threshold calibration and observed sampling rate; default filter parameters are documented below.
 
 ## Keep this README current
 
@@ -37,7 +37,7 @@ Do not put credentials, machine-specific SDK paths, or private conversation hist
 | **1 — Visual motion implementation** | Camera permission, live preview, marker tracking, displacement, visual UI, and camera lifecycle | Real visual motion updates reliably on the phone |
 | **2 — Physical sensors and integration** | Accelerometer collection, filtering, vibration metrics, graph/status, and integration with the visual pipeline | Both real data streams work together reliably on the phone |
 
-Phase numbers describe feature scope. Per the updated team plan, Phase 1 visual work and Phase 2 sensor work proceed in parallel after Phase 0, then merge. Each pipeline and their combined behavior need validation before the integrated prototype is complete.
+Phase numbers describe feature scope. Phase 1 and Phase 2 were developed in parallel after Phase 0 and are now integrated. The merged app has passed a basic device check; marker acceptance and measurement calibration still need validation.
 
 ## Phase 0 — Setup and physical-device readiness
 
@@ -77,7 +77,7 @@ From the repository root (Windows: use `gradlew.bat`):
 
 Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. On launch, allow camera access, center a black marker on white paper, and start visual monitoring. `local.properties`, new local IDE files, Gradle caches, and build artifacts are ignored; pre-existing tracked `.idea` metadata is unchanged.
 
-Known scaffold limitations: dependency versions are deliberately pinned, and lint suggests newer releases. `allowBackup=false` is set, but explicit Android 12+ data-extraction rules remain a follow-up if persistence is introduced. Gradle also reports deprecated plugin behavior ahead of Gradle 9; use the supplied Gradle 8.14 wrapper. Marker tracking and visual ViewModel behavior have JVM tests. Phase 2 should add focused signal-processing tests.
+Known scaffold limitations: dependency versions are deliberately pinned, and lint suggests newer releases. `allowBackup=false` is set, but explicit Android 12+ data-extraction rules remain a follow-up if persistence is introduced. Gradle also reports deprecated plugin behavior ahead of Gradle 9; use the supplied Gradle 8.14 wrapper. Marker tracking and visual ViewModel behavior have JVM tests. Phase 2 includes eight focused signal-processing tests.
 
 ### Android Studio: Run disabled or no app module
 
@@ -163,7 +163,7 @@ Device checks on 2026-10-07: installed the final Phase 1 APK on SM-S721B / Andro
 
 ## Phase 2 — Physical sensors and integration
 
-The fellow developer implements this pipeline in parallel with Phase 1. Merge it with the visual pipeline afterward, then validate the combined app. Additional physical sensors can be scoped here later; none beyond the accelerometer are currently specified.
+The fellow developer’s pipeline from `feature/phase2-accelerometer` is integrated with Phase 1. Validate the combined behavior before treating the measurements as calibrated. Additional physical sensors can be scoped here later; none beyond the accelerometer are currently specified.
 
 ### Accelerometer pipeline and UI
 
@@ -176,12 +176,40 @@ The fellow developer implements this pipeline in parallel with Phase 1. Merge it
 - Register listeners only while monitoring is active and the app is in the foreground; unregister on stop/background. Handle unavailable sensors explicitly.
 - Connect sensor readings to `MotionXViewModel`, add the bounded vibration-history graph, and extend start/stop to control both pipelines.
 
+### Phase 2 implementation and integration
+
+Source branch: `feature/phase2-accelerometer`, commit `ba432db`. The source and tests arrived unverified; merged validation is recorded in the current handoff.
+
+- `sensors/VibrationAnalyzer.kt` — pure Kotlin, no Android dependencies. `process(x, y, z, timestampNanos)` takes raw m/s² and returns `VibrationData`; `reset()` clears peak/RMS/gravity state. Not thread-safe; feed it from one thread.
+- `sensors/AccelerometerSource.kt` — `SensorManager` wrapper. `isAvailable` reports whether `TYPE_ACCELEROMETER` exists. `readings(): Flow<VibrationData>` registers the listener when collection starts and unregisters it (and stops its `HandlerThread`) when collection is cancelled. Events arrive on a background thread. If no sensor exists or registration fails, the flow fails with `SensorUnavailableException`. Each collection uses a new analyzer, so peak/RMS restart per monitoring session. No runtime permission is needed.
+- `app/src/test/.../VibrationAnalyzerTest.kt` — JVM tests with synthetic 100 Hz input: stationary → 0, tilt settles, 0.1 g/0.5 g sine at 10 Hz → expected RMS and status, RMS decay, peak hold/reset, warm-up exclusion. JUnit 4.13.2 added as `testImplementation`.
+- **Integrated:** the route collects the sensor flow only during a foreground monitoring session. Cancellation unregisters the listener and stops its thread, including registration failures. The ViewModel preserves camera fields, rejects stale session callbacks, publishes sensor UI updates at most 10 times/second, and retains at most 100 samples spanning the latest 10 seconds. Stop/background clears readings/history; restarting constructs a fresh analyzer. Missing/failed sensors show an explicit message while visual monitoring continues.
+- **UI:** live magnitude, RMS, peak, raw X/Y/Z, physical status, and a timestamp-based graph of smoothed magnitude in g. The graph labels its automatic vertical scale. The existing camera-ready start requirement remains; independent sensor-only mode is not added.
+
+Analyzer parameters (defaults in `VibrationAnalyzer.Config`; filter coefficients use real timestamp intervals; RMS is a sample-weighted mean within the time window and can still depend on sampling/jitter):
+
+| Parameter | Value | Notes |
+| --- | --- | --- |
+| Requested sample period | 10 000 µs (100 Hz) | Actual delivered rate on the S24 FE not yet measured |
+| Gravity suppression | Per-axis first-order low-pass, τ = 0.2 s (≈0.8 Hz cutoff); linear = raw − gravity | Seeded with the first sample so output starts near 0. Slow motion below ~1 Hz is partly treated as gravity; rotating the phone causes a brief transient |
+| Magnitude | `sqrt(lx² + ly² + lz²) / 9.80665`, EMA-smoothed with τ = 0.05 s | In g |
+| RMS | Unsmoothed linear magnitude over a 1.0 s sliding time window | In g |
+| Peak | Max smoothed magnitude since the session started or `reset()`; ignores the first 0.6 s warm-up | Held until reset |
+| Sample gap | A gap > 0.5 s (or a backwards timestamp) restarts the analyzer, including peak | Avoids filter jumps after stalls |
+| Status (from RMS) | `NORMAL` < 0.03 g ≤ `VIBRATING` < 0.15 g ≤ `HIGH_VIBRATION` | **Uncalibrated**; tune on the S24 FE. No hysteresis |
+
+### Merge validation — 2026-10-07
+
+Ran `./gradlew :app:assembleDebug :app:testDebugUnitTest --tests 'com.motionx.app.sensors.VibrationAnalyzerTest' --tests 'com.motionx.app.viewmodel.MotionXViewModelTest' --no-daemon`: build succeeded, 14 tests passed. New integration tests verify preserving visual fields, bounded/throttled history, clearing stopped readings, rejecting old sensor sessions, and keeping visual monitoring active when the sensor is unavailable.
+
+On SM-S721B / Android 16, the live screen showed physical magnitude 0.09 g, RMS 0.07 g, peak 0.91 g, raw axes, a `VIBRATING` state, and a changing-history trace. These are observed readings, not calibrated reference values. Sensor service confirmed a successful 10,000 µs registration. After backgrounding, MotionX had zero active sensor connections and the camera client list was empty. On return, the camera was ready, monitoring was stopped, and physical values were unavailable. The actual sample rate, stationary noise floor, status thresholds, and marker-based simultaneous demo remain unvalidated.
+
 ### Phase 2 acceptance and demo
 
-- [ ] Physical motion updates current vibration, RMS, peak, axes, graph, and status live.
+- [x] Real sensor data updates current vibration, RMS, peak, axes, graph, and status live on the S24 FE.
 - [ ] Stationary readings settle after gravity suppression; thresholds are tested on the target phone.
-- [ ] Start/stop and background/resume do not leak or duplicate sensor listeners or camera resources.
-- [ ] Missing sensors are handled explicitly without fabricated readings.
+- [x] Shared monitoring starts both pipelines; background cancels collection, releases sensor/camera connections, and clears readings on return (short S24 FE check).
+- [x] Missing-sensor state clears physical readings and preserves visual monitoring in a focused ViewModel test; absent-hardware registration failure has not been reproduced on a physical device.
 - [ ] Both pipelines remain responsive together during a rehearsed physical-device demo.
 
 Demo: show both live streams while moving a marker and gently moving the phone. The accelerometer measures **the phone's motion**, not a remote object's vibration: moving only the marker should primarily affect the camera reading. Use a suitable mechanically coupled setup when comparing a common vibration source.
@@ -200,16 +228,15 @@ Data classes are in `app/src/main/java/com/motionx/app/model/`. Keep these defin
 | `VisualMotionData` | `x`, `y`, `displacement` | Full unrotated camera-buffer pixels; displacement is distance from the first valid position in the current tracking segment |
 | `VisualMotionData` | `timestamp`, `isTracking` | CameraX `ImageInfo.timestamp` in nanoseconds; clock alignment is unverified; validity flag |
 
-The ViewModel exposes live visual state; `vibration` remains null until Phase 2 is merged. Do not assume camera and sensor timestamps share a clock without verification. Phase 2 compares the readings side by side; pixel displacement and acceleration in g are different quantities and should not be presented as equivalent measurements.
+The ViewModel exposes both live streams while monitoring; `vibration` is null while stopped or unavailable. Do not assume camera and sensor timestamps share a clock without verification. Phase 2 compares the readings side by side; pixel displacement and acceleration in g are different quantities and should not be presented as equivalent measurements.
 
-### Fellow developer: Phase 2 integration contract
+### Integrated producer contract
 
-- Own `sensors/` and its tests. Preserve the existing `model/VibrationData.kt` and `VibrationStatus` names, fields, and units. No backend, persistence, networking, or UI work is required in the sensor branch.
-- Suggested analyzer API: `VibrationAnalyzer(context)`, read-only `data: StateFlow<VibrationData?>`, `start()`, and `stop()`. Report absent hardware explicitly (for example, `isAvailable`); use null before samples exist. Make start/stop idempotent and unregister listeners on stop. Record the final API here if it differs.
-- Raw X/Y/Z remain in m/s² including gravity; magnitude/RMS/peak are gravity-suppressed g. Preserve sensor-event timestamps. Document sample rate, gravity removal, filter constants, RMS window, peak reset, and status thresholds with tests.
-- Leave `camera/`, `MainScreen`, `MotionXRoute`, and `MotionXViewModel` to Phase 1 until merge. `MotionXUiState` gained additive visual-control fields (`isMonitoring`, `cameraReady`, `cameraProblem`); its existing `vibration` field is unchanged.
-- At merge, collect sensor data in the ViewModel using atomic `update { it.copy(vibration = reading) }` so sensor updates preserve visual fields. Coordinate ownership of analyzer lifecycle; start both pipelines on monitoring, stop them on stop/background, and clear stale readings. Extend camera-gated start behavior deliberately if sensor-only mode is required.
-- Merge the vibration graph, physical status, and axis readouts after the producer works. Test simultaneous collection, missing permissions/hardware, stop/resume, and gravity suppression on the phone. Do not infer time synchronization from the two timestamp fields alone.
+- `AccelerometerSource(context).readings(): Flow<VibrationData>` is the actual API (replacing the earlier suggested start/stop API). Each collector owns a fresh analyzer and sensor thread; cancel collection to stop. `isAvailable` reports hardware availability, and failures propagate through the flow.
+- `MotionXRoute` owns the single collection tied to monitoring/session/foreground state. `MotionXViewModel.onVibration(reading, session)` merges data atomically without replacing visual fields. `monitoringSession` prevents late results from an old collector contaminating a new run.
+- Raw X/Y/Z remain m/s² including gravity; magnitude/RMS/peak are gravity-suppressed g, with the branch’s filter and peak semantics preserved. Neither the sensor model nor the visual model changed during integration.
+- Sensor failures clear physical readings and leave visual monitoring active. A camera failure stops the shared monitoring session. On background both pipelines stop; returning restores camera preview, and monitoring requires Start again.
+- Timestamp clock alignment between camera and sensors is still unverified. The graph uses only sensor timestamps; no correlation or frequency measurement is implied.
 
 ## One-screen UI
 
@@ -237,30 +264,33 @@ app/
     java/com/motionx/app/
       MainActivity.kt
       camera/                  # CameraPreview, CameraAnalyzer, MarkerTracker
-      sensors/                 # Phase 2: VibrationAnalyzer.kt
+      sensors/                 # VibrationAnalyzer.kt + AccelerometerSource.kt
       model/
         MotionXUiState.kt
         VibrationData.kt
         VisualMotionData.kt
       ui/
         MainScreen.kt          # Screen and Compose preview
-        MotionXRoute.kt        # Permission and lifecycle handling
+        MotionXRoute.kt        # Permission, lifecycle, sensor collection
+        VibrationGraph.kt      # Bounded physical-vibration trace
         Components.kt
         theme/Theme.kt
       viewmodel/MotionXViewModel.kt
+  src/test/java/com/motionx/app/
+    sensors/VibrationAnalyzerTest.kt  # JVM unit tests for the analyzer
 ```
 
 | Owner | Responsibilities | Phase deliverables |
 | --- | --- | --- |
 | Developer 1: Android/UI/camera | Setup, Compose/Material 3, camera permission, preview/tracking, ViewModel and UI integration | Phase 0: installed app shell; Phase 1: working visual motion; Phase 2: physical metrics/graph integration |
-| Developer 2: sensor/algorithm | Independently implement SensorManager, filtering, magnitude/RMS/peak, thresholds, and sensor tests | Phase 2: tested sensor data through the existing model, ready to merge |
+| Developer 2: sensor/algorithm | Independently implement SensorManager, filtering, magnitude/RMS/peak, thresholds, and sensor tests | Phase 2: merged sensor pipeline; next, threshold/noise calibration |
 | Both | Phase acceptance, shared interfaces, lifecycle checks, and device demo | Validate each pipeline, then validate their merged behavior |
 
 In Phase 2, Developer 2 should focus on sensor logic rather than UI. Coordinate shared model and ViewModel edits before changing interfaces.
 
 ## Build sequence and time budget
 
-The original target is a 90-minute hackathon build. Phase 0 is complete; develop the two pipelines in parallel and reserve time for their merge and device checks.
+The original target is a 90-minute hackathon build. Phase 0 and the parallel pipeline implementation/merge are complete. Focus remaining time on the actual marker and data accuracy, then rehearse the demo.
 
 1. **Phase 0:** finish initialization, build/install, and physical-device launch validation.
 2. **Parallel work:** Developer 1 implements and validates Phase 1 visual motion; Developer 2 independently implements and tests Phase 2 sensor analysis.

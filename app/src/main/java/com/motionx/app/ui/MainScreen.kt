@@ -18,11 +18,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.motionx.app.R
 import com.motionx.app.model.MotionXUiState
+import com.motionx.app.model.SensorProblem
+import com.motionx.app.model.VibrationStatus
 import com.motionx.app.ui.theme.MotionXTheme
 
 @Composable
@@ -84,13 +87,32 @@ fun MainScreen(
                 MeasurementCard(stringResource(R.string.peak), state.vibration?.peak,
                     stringResource(R.string.unit_g), Modifier.weight(1f))
             }
+            val vibrationStatus = state.vibration?.status
+            Text(stringResource(when {
+                state.sensorProblem == SensorProblem.UNAVAILABLE -> R.string.sensor_unavailable
+                state.sensorProblem == SensorProblem.READ_FAILED -> R.string.sensor_error
+                !state.isMonitoring -> R.string.sensor_idle
+                vibrationStatus == VibrationStatus.HIGH_VIBRATION -> R.string.vibration_high
+                vibrationStatus == VibrationStatus.VIBRATING -> R.string.vibration_warning
+                vibrationStatus == VibrationStatus.NORMAL -> R.string.vibration_normal
+                else -> R.string.waiting_for_samples
+            }), color = when (vibrationStatus) {
+                VibrationStatus.HIGH_VIBRATION -> MaterialTheme.colorScheme.error
+                VibrationStatus.VIBRATING -> Color(0xFFFFCA70)
+                VibrationStatus.NORMAL -> MaterialTheme.colorScheme.primary
+                null -> MaterialTheme.colorScheme.onSurfaceVariant
+            }, style = MaterialTheme.typography.labelLarge)
+            state.vibration?.let { reading ->
+                Text(stringResource(R.string.raw_axes, reading.accelerationX,
+                    reading.accelerationY, reading.accelerationZ), style = MaterialTheme.typography.bodyMedium)
+            }
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(stringResource(R.string.graph_title), style = MaterialTheme.typography.labelSmall)
-                    Text(stringResource(R.string.waiting_for_samples), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    VibrationGraph(state.vibrationHistory)
                 }
             }
-            Text(stringResource(R.string.sensors_pending),
+            Text(stringResource(R.string.sensor_explanation),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

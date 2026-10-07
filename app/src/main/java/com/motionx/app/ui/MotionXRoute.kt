@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +36,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.motionx.app.R
 import com.motionx.app.camera.CameraPreview
 import com.motionx.app.model.CameraProblem
+import com.motionx.app.model.SensorProblem
+import com.motionx.app.sensors.AccelerometerSource
+import com.motionx.app.sensors.SensorUnavailableException
 import com.motionx.app.viewmodel.MotionXViewModel
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.conflate
 
 @Composable
 fun MotionXRoute(viewModel: MotionXViewModel = viewModel()) {
@@ -46,6 +52,16 @@ fun MotionXRoute(viewModel: MotionXViewModel = viewModel()) {
     var permission by remember { mutableStateOf(hasPermission()) }
     var resumed by remember { mutableStateOf(owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val accelerometer = remember(context.applicationContext) { AccelerometerSource(context.applicationContext) }
+    LaunchedEffect(state.isMonitoring, state.monitoringSession, resumed) {
+        if (state.isMonitoring && resumed) {
+            val session = state.monitoringSession
+            accelerometer.readings().conflate().catch { failure ->
+                viewModel.sensorFailed(if (failure is SensorUnavailableException)
+                    SensorProblem.UNAVAILABLE else SensorProblem.READ_FAILED, session)
+            }.collect { viewModel.onVibration(it, session) }
+        }
+    }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         permission = it
         if (!it) viewModel.stopMonitoring()

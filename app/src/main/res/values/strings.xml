@@ -28,7 +28,15 @@
     <string name="status_idle">IDLE</string>
     <string name="start_monitoring">START MONITORING</string>
     <string name="stop_monitoring">STOP MONITORING</string>
-    <string name="sensors_pending">Physical sensor readings will be available after Phase 2 integration.</string>
+    <string name="sensor_unavailable">ACCELEROMETER UNAVAILABLE — visual monitoring continues</string>
+    <string name="sensor_error">SENSOR ERROR — stop and start to retry</string>
+    <string name="sensor_idle">PHYSICAL VIBRATION · IDLE</string>
+    <string name="vibration_normal">PHYSICAL VIBRATION · NORMAL</string>
+    <string name="vibration_warning">PHYSICAL VIBRATION · VIBRATING</string>
+    <string name="vibration_high">PHYSICAL VIBRATION · HIGH</string>
+    <string name="raw_axes">RAW ACCELERATION (m/s²)\nX: %1$.2f    Y: %2$.2f    Z: %3$.2f</string>
+    <string name="graph_scale">0–%1$.2f g · last 10 seconds · auto scale</string>
+    <string name="sensor_explanation">The accelerometer measures the phone’s motion. Keep still briefly after starting. Peak resets each session; vibration thresholds are preliminary.</string>
     <string name="unavailable_value">—</string>
     <string name="unit_pixels">px</string>
     <string name="unit_g">g</string>
