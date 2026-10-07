@@ -11,9 +11,10 @@ Everything runs locally on the phone. Prioritize a working prototype, real senso
 - **Implemented:** single-module Android scaffold, Kotlin/Compose/Material 3 configuration, Gradle wrapper and version catalog, launcher resources, dark one-screen UI shell, shared data models, and lifecycle-aware collection of ViewModel `StateFlow`.
 - **Not yet implemented:** runtime camera permission flow, live preview/tracking, accelerometer collection/analysis, graph rendering, and monitoring controls. Camera and graph areas are placeholders; readings are unavailable (`—`) and start is disabled. Camera permission is declared in the manifest but not requested yet.
 - **Validation:** `./gradlew :app:assembleDebug :app:lintDebug --no-daemon` passed using JDK 21 and SDK 36. Debug APK generated. Lint has zero errors and 14 warnings (13 dependency/tool upgrade notices and one Android 12+ backup-rule advisory). XML/catalog parsing, wrapper shell syntax, and `git diff --check` passed. Physical-device installation, launch, forced-stop/relaunch, and visual shell checks passed on the Samsung Galaxy S24 FE (SM-S721B), Android 16 / API 36. No emulator test performed.
-- **Current phase:** Phase 0 complete. Phase 1 is ready to start; camera and sensor functionality remain unimplemented.
-- **Next step:** Developer 1 implements runtime camera permission and lifecycle-bound CameraX preview in `camera/`, then marker tracking and visual readings through `MotionXViewModel`. Sensor implementation starts in Phase 2 after visual motion works reliably.
-- **Open decisions:** tracking marker, displacement reference, filtering/window settings, and vibration thresholds. Record actual choices here when implemented.
+- **Current phase:** Phase 0 complete. Phase 1 (camera) is not yet implemented. Developer 2 has started Phase 2 sensor *logic* in advance on branch `feature/phase2-accelerometer`, isolated in `sensors/` (see [Phase 2 implementation status](#phase-2-implementation-status--in-progress)). It is not wired into the ViewModel or UI, so the app's behavior is unchanged.
+- **Phase 2 validation so far:** none. The sensor code and its unit tests were written on a machine without a JDK/Android SDK, so they have **not been compiled, unit-tested, or run on the phone**. First action for whoever picks this up: run `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` and fix any failures.
+- **Next step:** Developer 1 implements runtime camera permission and lifecycle-bound CameraX preview in `camera/`, then marker tracking and visual readings through `MotionXViewModel`. Developer 2 verifies the sensor build/tests, then (once Phase 1 is stable) agrees with Developer 1 on wiring `AccelerometerSource` into `MotionXViewModel`.
+- **Open decisions:** tracking marker, displacement reference, and on-phone calibration of vibration thresholds. Initial sensor filter/window/threshold values are recorded under Phase 2.
 
 ## Keep this README current
 
@@ -76,7 +77,7 @@ From the repository root (Windows: use `gradlew.bat`):
 
 Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. The first launch displays the UI shell; live monitoring will be added next. `local.properties`, new local IDE files, Gradle caches, and build artifacts are ignored; pre-existing tracked `.idea` metadata is unchanged.
 
-Known scaffold limitations: dependency versions are deliberately pinned, and lint suggests newer releases. `allowBackup=false` is set, but explicit Android 12+ data-extraction rules remain a follow-up if persistence is introduced. Gradle also reports deprecated plugin behavior ahead of Gradle 9; use the supplied Gradle 8.14 wrapper. There are no algorithm tests yet because neither analyzer exists; add focused tests when implementing signal processing.
+Known scaffold limitations: dependency versions are deliberately pinned, and lint suggests newer releases. `allowBackup=false` is set, but explicit Android 12+ data-extraction rules remain a follow-up if persistence is introduced. Gradle also reports deprecated plugin behavior ahead of Gradle 9; use the supplied Gradle 8.14 wrapper. Algorithm unit tests run with `./gradlew :app:testDebugUnitTest`; currently only the Phase 2 vibration analyzer has tests (not yet executed — see current handoff).
 
 ### Phase 0 acceptance
 
@@ -141,6 +142,27 @@ Begin after Phase 1 is stable. Implement the accelerometer pipeline, then combin
 - Register listeners only while monitoring is active and the app is in the foreground; unregister on stop/background. Handle unavailable sensors explicitly.
 - Connect sensor readings to `MotionXViewModel`, add the bounded vibration-history graph, and extend start/stop to control both pipelines.
 
+### Phase 2 implementation status — in progress
+
+Branch `feature/phase2-accelerometer`. Written but **not yet compiled, tested, or run** (no JDK/SDK on the authoring machine).
+
+- `sensors/VibrationAnalyzer.kt` — pure Kotlin, no Android dependencies. `process(x, y, z, timestampNanos)` takes raw m/s² and returns `VibrationData`; `reset()` clears peak/RMS/gravity state. Not thread-safe; feed it from one thread.
+- `sensors/AccelerometerSource.kt` — `SensorManager` wrapper. `isAvailable` reports whether `TYPE_ACCELEROMETER` exists. `readings(): Flow<VibrationData>` registers the listener when collection starts and unregisters it (and stops its `HandlerThread`) when collection is cancelled. Events arrive on a background thread. If no sensor exists or registration fails, the flow fails with `SensorUnavailableException`. Each collection uses a new analyzer, so peak/RMS restart per monitoring session. No runtime permission is needed.
+- `app/src/test/.../VibrationAnalyzerTest.kt` — JVM tests with synthetic 100 Hz input: stationary → 0, tilt settles, 0.1 g/0.5 g sine at 10 Hz → expected RMS and status, RMS decay, peak hold/reset, warm-up exclusion. JUnit 4.13.2 added as `testImplementation`.
+- **Not done:** ViewModel/UI wiring, vibration-history graph, start/stop and background/resume integration, and all on-phone checks below.
+
+Analyzer parameters (defaults in `VibrationAnalyzer.Config`; filters use real timestamp intervals, so they are rate-independent):
+
+| Parameter | Value | Notes |
+| --- | --- | --- |
+| Requested sample period | 10 000 µs (100 Hz) | Actual delivered rate on the S24 FE not yet measured |
+| Gravity suppression | Per-axis first-order low-pass, τ = 0.2 s (≈0.8 Hz cutoff); linear = raw − gravity | Seeded with the first sample so output starts near 0. Slow motion below ~1 Hz is partly treated as gravity; rotating the phone causes a brief transient |
+| Magnitude | `sqrt(lx² + ly² + lz²) / 9.80665`, EMA-smoothed with τ = 0.05 s | In g |
+| RMS | Unsmoothed linear magnitude over a 1.0 s sliding time window | In g |
+| Peak | Max smoothed magnitude since the session started or `reset()`; ignores the first 0.6 s warm-up | Held until reset |
+| Sample gap | A gap > 0.5 s (or a backwards timestamp) restarts the analyzer, including peak | Avoids filter jumps after stalls |
+| Status (from RMS) | `NORMAL` < 0.03 g ≤ `VIBRATING` < 0.15 g ≤ `HIGH_VIBRATION` | **Uncalibrated**; tune on the S24 FE. No hysteresis |
+
 ### Phase 2 acceptance and demo
 
 - [ ] Physical motion updates current vibration, RMS, peak, axes, graph, and status live.
@@ -193,7 +215,7 @@ app/
     java/com/motionx/app/
       MainActivity.kt
       camera/                  # Phase 1: CameraX preview + CameraAnalyzer.kt
-      sensors/                 # Phase 2: VibrationAnalyzer.kt
+      sensors/                 # Phase 2: VibrationAnalyzer.kt, AccelerometerSource.kt (in progress)
       model/
         MotionXUiState.kt
         VibrationData.kt
@@ -203,6 +225,8 @@ app/
         Components.kt
         theme/Theme.kt
       viewmodel/MotionXViewModel.kt
+  src/test/java/com/motionx/app/
+    sensors/VibrationAnalyzerTest.kt  # JVM unit tests for the analyzer
 ```
 
 | Owner | Responsibilities | Phase deliverables |
