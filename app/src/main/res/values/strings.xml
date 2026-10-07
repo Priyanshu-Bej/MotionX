@@ -48,7 +48,11 @@
     <string name="unit_pixels">px</string>
     <string name="unit_g">g</string>
     <string name="measurement_guide">Measurement guide</string>
-    <string name="close_guide">GOT IT</string>
+    <string name="tab_visual">Visual</string>
+    <string name="tab_physical">Physical</string>
+    <string name="tab_guide">Guide</string>
+    <string name="tabs_shared_monitoring">Monitoring uses both camera and accelerometer on every tab.</string>
+    <string name="tabs_camera_setup">Open Visual to check camera access before starting.</string>
     <string name="visual_motion_hint">Distance from starting point</string>
     <string name="physical_vibration_hint">Current · smoothed, gravity removed</string>
     <string name="position_hint">Marker position in camera pixels</string>

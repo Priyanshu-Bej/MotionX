@@ -2,13 +2,10 @@ package com.motionx.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -26,36 +23,26 @@ internal fun vibrationThresholdExplanation(): String {
 }
 
 @Composable
-internal fun MeasurementGuide(onDismiss: () -> Unit) {
+internal fun MeasurementGuide(modifier: Modifier = Modifier) {
     val config = remember { VibrationAnalyzer.Config() }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.measurement_guide)) },
-        text = {
-            Column(
-                Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                GuideSection(stringResource(R.string.guide_g_title), stringResource(R.string.guide_g))
-                GuideSection(stringResource(R.string.visual_motion), stringResource(R.string.guide_visual))
-                GuideSection(stringResource(R.string.guide_position_title), stringResource(R.string.guide_position))
-                GuideSection(stringResource(R.string.physical_vibration), stringResource(R.string.guide_physical))
-                GuideSection(stringResource(R.string.rms), stringResource(R.string.guide_rms, config.rmsWindowSec))
-                GuideSection(stringResource(R.string.peak), stringResource(R.string.guide_peak, config.warmUpSec))
-                GuideSection(stringResource(R.string.guide_status_title), vibrationThresholdExplanation())
-                GuideSection(stringResource(R.string.guide_axes_title), stringResource(R.string.guide_axes))
-                GuideSection(stringResource(R.string.guide_graphs_title), stringResource(R.string.guide_graphs))
-                GuideSection(stringResource(R.string.guide_processing_title), stringResource(
-                    R.string.guide_processing, 1_000_000 / AccelerometerSource.SAMPLING_PERIOD_US,
-                    config.gravityTimeConstantSec, config.smoothingTimeConstantSec, config.maxSampleGapSec,
-                ))
-                GuideSection(stringResource(R.string.guide_missing_title), stringResource(R.string.guide_missing))
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.close_guide)) }
-        },
-    )
+    Column(modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(stringResource(R.string.measurement_guide), style = MaterialTheme.typography.titleLarge)
+        GuideSection(stringResource(R.string.guide_g_title), stringResource(R.string.guide_g))
+        GuideSection(stringResource(R.string.visual_motion), stringResource(R.string.guide_visual))
+        GuideSection(stringResource(R.string.guide_position_title), stringResource(R.string.guide_position))
+        GuideSection(stringResource(R.string.physical_vibration), stringResource(R.string.guide_physical))
+        GuideSection(stringResource(R.string.rms), stringResource(R.string.guide_rms, config.rmsWindowSec))
+        GuideSection(stringResource(R.string.peak), stringResource(R.string.guide_peak, config.warmUpSec))
+        GuideSection(stringResource(R.string.guide_status_title), vibrationThresholdExplanation())
+        GuideSection(stringResource(R.string.guide_axes_title), stringResource(R.string.guide_axes))
+        GuideSection(stringResource(R.string.guide_graphs_title), stringResource(R.string.guide_graphs))
+        GuideSection(stringResource(R.string.guide_processing_title), stringResource(
+            R.string.guide_processing, 1_000_000 / AccelerometerSource.SAMPLING_PERIOD_US,
+            config.gravityTimeConstantSec, config.smoothingTimeConstantSec, config.maxSampleGapSec,
+        ))
+        GuideSection(stringResource(R.string.guide_missing_title), stringResource(R.string.guide_missing))
+    }
 }
 
 @Composable

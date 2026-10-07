@@ -14,7 +14,7 @@ Everything runs locally on the phone. Prioritize a working prototype, real senso
 - **Current phase:** Phase 1 and Phase 2 implementation integrated; combined device checks and measurement calibration are separate validation steps, not completed accuracy claims.
 - **Next step:** run a controlled stationary/moving-phone accuracy check and a real-marker demo together. Tune thresholds from those results before optional features; implementation and basic integration checks are complete.
 - **Open decisions:** on-device threshold calibration and observed sampling rate; default filter parameters are documented below.
-- **Latest change:** added plain-language measurement-card descriptions, an inline explanation of g, RMS status boundaries, and a scrollable **Measurement guide** accessible below the tagline. The guide covers every displayed metric, raw axes, graph scales, filtering, sampling, resets, and unavailable/rounded values. Signal processing and shared interfaces are unchanged. `:app:assembleDebug --no-daemon` passed; APK installation and launch succeeded on the S24 FE. Screenshot/UI inspection confirmed card descriptions and the inline g explanation, including live readings. Guide opening/scrolling/dismissal was not confirmed during this brief check. No unit suite or lint rerun for this presentation-only change; controlled marker and calibration acceptance remain pending.
+- **Latest change:** separated the UI into **Visual**, **Physical**, and **Guide** tabs with tap/swipe navigation and independent scroll positions. The shared start/stop control stays visible. All pages remain composed so tab switches preserve the camera binding, tracking reference, sensor session, and histories; both pipelines continue while monitoring on any tab. Guide explanations are now a full page instead of a dialog. Debug build passed and the APK installed/launched on the S24 FE. A focused device check showed all three tabs, the full-page Guide, live physical readings after tab switches, and the shared Stop control. Camera service confirmed MotionX remained connected while Physical was selected (no rebind during those switches). Controlled marker-reference continuity, rotation, and measurement calibration remain unverified. No unit suite or lint rerun for this navigation change; algorithms and shared model contracts are unchanged.
 - **Previous graph validation:** debug build and all 8 affected ViewModel tests passed, including history bounds, lost-tracking gaps, sensor-state preservation, and resets. Updated APK installed and launched successfully on the connected S24 FE. Camera/sensor algorithm tests and lint were not repeated for that graph-only change. Physical-marker graph validation remains pending.
 
 ## Keep this README current
@@ -248,21 +248,22 @@ The ViewModel exposes both live streams while monitoring; `vibration` is null wh
 - Sensor failures clear physical readings and leave visual monitoring active. A camera failure stops the shared monitoring session. On background both pipelines stop; returning restores camera preview, and monitoring requires Start again.
 - Timestamp clock alignment between camera and sensors is still unverified. Each graph uses its own producer's timestamps; no correlation or frequency measurement is implied.
 
-## One-screen UI
+## Tabbed UI
 
 Phase 0 provides the shell. Phase 1 activates the camera and visual readings. Phase 2 adds physical readings, vibration history, and vibration status. Keep unimplemented measurements unavailable rather than displaying sample values as real data.
 
 - App name and tagline at the top.
-- Large live camera preview with a small tracking overlay.
-- Large visual motion value in px and physical vibration value in g; include RMS and peak, with compact X/Y/Z readouts.
-- Separate compact live visual-displacement (px) and physical-vibration (g) graphs with bounded histories.
-- Status indicator and **START MONITORING / STOP MONITORING** button.
+- **Visual:** live camera preview and tracking overlay, marker instructions, displacement in px, visual graph, and marker X/Y coordinates.
+- **Physical:** current vibration in g, RMS/peak, physical status and thresholds, raw axes, and physical graph.
+- **Guide:** scrollable explanations for all measurements, units, graphs, filters, and resets.
+- Pinned tabs and shared status plus **START MONITORING / STOP MONITORING** controls. Start still requires a ready camera; the footer directs users to Visual for permission/error recovery.
+- `HorizontalPager` retains all three pages (`beyondViewportPageCount = 2`) so switching tabs does not dispose `CameraPreview` or reset its analyzer. Keep this behavior when changing navigation; backgrounding still releases both pipelines through the existing lifecycle controls.
 
 Use a dark background, subtle rounded cards, large readable numbers, one primary accent color, minimal shadows, and restrained animation. Use neutral/green for normal, amber for warning, and red for high vibration. Show permission, tracking-loss, and sensor availability states clearly. Keep the style like a professional engineering instrument.
 
 ### Measurement explanations in the app
 
-Short descriptions appear directly on measurement cards. The main screen explains **1 g ≈ 9.81 m/s²**, gravity removal, raw axes including gravity, and the RMS status boundaries. **Measurement guide** opens a scrollable, dismissible dialog without changing monitoring state.
+Short descriptions appear directly on measurement cards. The Physical tab explains **1 g ≈ 9.81 m/s²**, gravity removal, raw axes including gravity, and the RMS status boundaries. The Guide tab contains the full scrollable **Measurement guide** without changing monitoring state.
 
 - Visual displacement and marker coordinates use full unrotated camera-buffer pixels, not millimeters or display pixels. Tracking loss resets the reference.
 - Physical magnitude is smoothed gravity-suppressed acceleration; RMS uses unsmoothed magnitudes over the configured window; peak holds the highest smoothed value after warm-up. RMS can therefore exceed the displayed peak.
