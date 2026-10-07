@@ -11,7 +11,8 @@ import org.junit.Test
 class MotionXViewModelTest {
     private val reading = VisualMotionData(10f, 20f, 4f, 100, true)
     private fun vibration(time: Long) = VibrationData(0f, 0f, 9.8f, 0.04f,
-        0.05f, 0.1f, VibrationStatus.VIBRATING, time)
+        0.05f, 0.1f, VibrationStatus.VIBRATING, time,
+        com.motionx.app.model.FrequencyData(com.motionx.app.model.FrequencyStatus.READY, 10f, 100f, 40f))
 
     @Test fun visualHistoryIsBoundedKeepsGapsAndPreservesSensorReadings() {
         val model = MotionXViewModel()

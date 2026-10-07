@@ -11,10 +11,11 @@ Everything runs locally on the phone. Prioritize a working prototype, real senso
 - **Implemented:** Phase 1 camera/marker tracking plus Phase 2 accelerometer readings, gravity suppression, smoothed magnitude, RMS/peak, physical status, raw axes, and separate live visual-displacement (px) and physical-vibration (g) graphs. Both pipelines share start/stop and foreground lifecycle handling.
 - **Integration:** merged `origin/feature/phase2-accelerometer` (`ba432db`) into `develop`. Kept Phase 1 camera code and shared data contracts, combined README changes, and removed duplicate JUnit declarations introduced by the merge.
 - **Validation:** merged debug build and 14 focused tests passed (8 vibration-analyzer + 6 ViewModel). Installed on S24 FE / Android 16; observed real magnitude, RMS, peak, axes, physical status, and graph with the camera active. Backgrounding released both sensor and camera connections; returning showed idle controls and cleared readings. No AndroidRuntime errors appeared during this smoke check. Existing camera tests and lint were not rerun. The user subsequently reported passing the stationary, marker-motion/loss, and combined tab-switch checks; see the user acceptance record below.
-- **Current phase:** Phase 1 and Phase 2 implementation integrated, with basic functional acceptance reported by the user. Numerical calibration, rotation/overlay alignment, permission edge cases, and a longer demo remain separate follow-ups.
-- **Next step:** capture numerical stationary/moving reference measurements before tuning filters or thresholds. Dominant-frequency analysis (Hz) is the proposed next optional feature, not yet implemented or started. Do not repeat the passed functional checks without a relevant change.
+- **Current phase:** Phase 3 dominant-frequency estimation implemented, with focused automated validation passed; known-frequency hardware validation remains pending. Phase 1 and Phase 2 basic functional acceptance was reported by the user. Numerical calibration, rotation/overlay alignment, permission edge cases, and a longer demo remain separate follow-ups.
+- **Next step:** compare the new Hz estimate with a mechanically coupled, known-frequency source within the displayed range. Record source/reference Hz, observed sample rate, estimated Hz, and motion level. Numerical amplitude/noise calibration remains separate; do not repeat passed functional checks without a relevant change.
 - **Open decisions:** on-device threshold calibration and observed sampling rate; default filter parameters are documented below.
-- **Latest change:** separated the UI into **Visual**, **Physical**, and **Guide** tabs with tap/swipe navigation and independent scroll positions. The shared start/stop control stays visible. All pages remain composed so tab switches preserve the camera binding, tracking reference, sensor session, and histories; both pipelines continue while monitoring on any tab. Guide explanations are now a full page instead of a dialog. Debug build passed and the APK installed/launched on the S24 FE. A focused device check showed all three tabs, the full-page Guide, live physical readings after tab switches, and the shared Stop control. Camera service confirmed MotionX remained connected while Physical was selected (no rebind during those switches). The user subsequently confirmed stream continuity across tab switches. Rotation and measurement calibration remain unverified. No unit suite or lint rerun for this navigation change; algorithms and shared model contracts are unchanged.
+- **Latest change:** Phase 3 adds a dominant-frequency card and observed sample rate to Physical, with Hz/range/limitations explained in Guide. Uses signed full-rate linear acceleration before magnitude smoothing and UI throttling. Build and 26 focused tests passed (9 frequency, 9 vibration, 8 ViewModel). Installed/launched on S24 FE: frequency quality message and observed rate rendered with live amplitude readings and camera TRACKING; no AndroidRuntime errors appeared during the brief check. Known-frequency accuracy remains pending.
+- **Previous UI change:** separated the UI into **Visual**, **Physical**, and **Guide** tabs with tap/swipe navigation and independent scroll positions. The shared start/stop control stays visible. All pages remain composed so tab switches preserve the camera binding, tracking reference, sensor session, and histories; both pipelines continue while monitoring on any tab. Guide explanations are now a full page instead of a dialog. Debug build passed and the APK installed/launched on the S24 FE. A focused device check showed all three tabs, the full-page Guide, live physical readings after tab switches, and the shared Stop control. Camera service confirmed MotionX remained connected while Physical was selected (no rebind during those switches). The user subsequently confirmed stream continuity across tab switches. Rotation and measurement calibration remain unverified. No unit suite or lint rerun for this navigation change; algorithms and shared model contracts are unchanged.
 - **Previous graph validation:** debug build and all 8 affected ViewModel tests passed, including history bounds, lost-tracking gaps, sensor-state preservation, and resets. Updated APK installed and launched successfully on the connected S24 FE. Camera/sensor algorithm tests and lint were not repeated for that graph-only change. Physical-marker graph behavior was subsequently reported working by the user.
 
 ## Keep this README current
@@ -38,6 +39,7 @@ Do not put credentials, machine-specific SDK paths, or private conversation hist
 | **0 — Setup and physical-device readiness** | Project initialization, dependencies, SDK/JDK setup, build, installation, and app-shell launch | App installs and opens reliably on the Samsung Galaxy S24 FE |
 | **1 — Visual motion implementation** | Camera permission, live preview, marker tracking, displacement, visual UI, and camera lifecycle | Real visual motion updates reliably on the phone |
 | **2 — Physical sensors and integration** | Accelerometer collection, filtering, vibration metrics, graph/status, and integration with the visual pipeline | Both real data streams work together reliably on the phone |
+| **3 — Dominant vibration frequency** | Timestamp-based spectral analysis of physical acceleration, Hz card, signal-quality states, and sampling/range explanation | Focused signal tests and a known-frequency hardware comparison |
 
 Phase numbers describe feature scope. Phase 1 and Phase 2 were developed in parallel after Phase 0 and are now integrated. The merged app has passed a basic device check, and the user has reported working marker tracking, stationary settling, and combined monitoring across tabs. Measurement calibration and the remaining edge-case checks are still pending.
 
@@ -200,7 +202,7 @@ Analyzer parameters (defaults in `VibrationAnalyzer.Config`; filter coefficients
 
 | Parameter | Value | Notes |
 | --- | --- | --- |
-| Requested sample period | 10 000 µs (100 Hz) | Actual delivered rate on the S24 FE not yet measured |
+| Requested sample period | 10 000 µs (100 Hz) | Phase 3 observed about 124.7 samples/s in one S24 FE window; rate is device-dependent, not guaranteed |
 | Gravity suppression | Per-axis first-order low-pass, τ = 0.2 s (≈0.8 Hz cutoff); linear = raw − gravity | Seeded with the first sample so output starts near 0. Slow motion below ~1 Hz is partly treated as gravity; rotating the phone causes a brief transient |
 | Magnitude | `sqrt(lx² + ly² + lz²) / 9.80665`, EMA-smoothed with τ = 0.05 s | In g |
 | RMS | Unsmoothed linear magnitude over a 1.0 s sliding time window | In g |
@@ -212,7 +214,7 @@ Analyzer parameters (defaults in `VibrationAnalyzer.Config`; filter coefficients
 
 Ran `./gradlew :app:assembleDebug :app:testDebugUnitTest --tests 'com.motionx.app.sensors.VibrationAnalyzerTest' --tests 'com.motionx.app.viewmodel.MotionXViewModelTest' --no-daemon`: build succeeded, 14 tests passed. New integration tests verify preserving visual fields, bounded/throttled history, clearing stopped readings, rejecting old sensor sessions, and keeping visual monitoring active when the sensor is unavailable.
 
-On SM-S721B / Android 16, the live screen showed physical magnitude 0.09 g, RMS 0.07 g, peak 0.91 g, raw axes, a `VIBRATING` state, and a changing-history trace. These are observed readings, not calibrated reference values. Sensor service confirmed a successful 10,000 µs registration. After backgrounding, MotionX had zero active sensor connections and the camera client list was empty. On return, the camera was ready, monitoring was stopped, and physical values were unavailable. The actual sample rate, numerical stationary noise floor, and status thresholds remain unvalidated. The user later reported passing qualitative stationary settling and combined monitoring checks.
+On SM-S721B / Android 16, the live screen showed physical magnitude 0.09 g, RMS 0.07 g, peak 0.91 g, raw axes, a `VIBRATING` state, and a changing-history trace. These are observed readings, not calibrated reference values. Sensor service confirmed a successful 10,000 µs registration. After backgrounding, MotionX had zero active sensor connections and the camera client list was empty. On return, the camera was ready, monitoring was stopped, and physical values were unavailable. At merge time the actual sample rate was not measured; Phase 3 later displayed an observed window rate (below). Numerical stationary noise floor and status thresholds remain unvalidated. The user later reported passing qualitative stationary settling and combined monitoring checks.
 
 ### Phase 2 acceptance and demo
 
@@ -246,6 +248,7 @@ Data classes are in `app/src/main/java/com/motionx/app/model/`. Keep these defin
 | --- | --- | --- |
 | `VibrationData` | `accelerationX`, `accelerationY`, `accelerationZ` | Raw accelerometer axes in m/s², including gravity |
 | `VibrationData` | `magnitude`, `rms`, `peak` | Gravity-suppressed vibration in g; convert m/s² using 9.80665 m/s² per g |
+| `VibrationData` | `frequency` | Optional `FrequencyData` (default null for existing callers): status, nullable dominant Hz, observed samples/s, and conservative upper frequency limit |
 | `VibrationData` | `status`, `timestamp` | `VibrationStatus` enum; `SensorEvent.timestamp` in nanoseconds since boot |
 | `VisualMotionData` | `x`, `y`, `displacement` | Full unrotated camera-buffer pixels; displacement is distance from the first valid position in the current tracking segment |
 | `VisualMotionData` | `timestamp`, `isTracking` | CameraX `ImageInfo.timestamp` in nanoseconds; clock alignment is unverified; validity flag |
@@ -256,9 +259,9 @@ The ViewModel exposes both live streams while monitoring; `vibration` is null wh
 
 - `AccelerometerSource(context).readings(): Flow<VibrationData>` is the actual API (replacing the earlier suggested start/stop API). Each collector owns a fresh analyzer and sensor thread; cancel collection to stop. `isAvailable` reports hardware availability, and failures propagate through the flow.
 - `MotionXRoute` owns the single collection tied to monitoring/session/foreground state. `MotionXViewModel.onVibration(reading, session)` merges data atomically without replacing visual fields. `monitoringSession` prevents late results from an old collector contaminating a new run.
-- Raw X/Y/Z remain m/s² including gravity; magnitude/RMS/peak are gravity-suppressed g, with the branch’s filter and peak semantics preserved. Neither the sensor model nor the visual model changed during integration.
+- Raw X/Y/Z remain m/s² including gravity; magnitude/RMS/peak are gravity-suppressed g, with the branch’s filter and peak semantics preserved. Neither model changed during the Phase 2 merge. Phase 3 appends the default-null `frequency` field to `VibrationData`; existing constructor calls remain source-compatible.
 - Sensor failures clear physical readings and leave visual monitoring active. A camera failure stops the shared monitoring session. On background both pipelines stop; returning restores camera preview, and monitoring requires Start again.
-- Timestamp clock alignment between camera and sensors is still unverified. Each graph uses its own producer's timestamps; no correlation or frequency measurement is implied.
+- Timestamp clock alignment between camera and sensors is still unverified. Each graph uses its own producer's timestamps; no cross-sensor correlation is implied. Phase 3 frequency uses only the accelerometer timestamps, separately from both history graphs.
 
 ## Tabbed UI
 
@@ -266,7 +269,7 @@ Phase 0 provides the shell. Phase 1 activates the camera and visual readings. Ph
 
 - App name and tagline at the top.
 - **Visual:** live camera preview and tracking overlay, marker instructions, displacement in px, visual graph, and marker X/Y coordinates.
-- **Physical:** current vibration in g, RMS/peak, physical status and thresholds, raw axes, and physical graph.
+- **Physical:** current vibration in g, dominant frequency in Hz and observed sample rate, RMS/peak, physical status and thresholds, raw axes, and physical graph.
 - **Guide:** scrollable explanations for all measurements, units, graphs, filters, and resets.
 - Pinned tabs and shared status plus **START MONITORING / STOP MONITORING** controls. Start still requires a ready camera; the footer directs users to Visual for permission/error recovery.
 - `HorizontalPager` retains all three pages (`beyondViewportPageCount = 2`) so switching tabs does not dispose `CameraPreview` or reset its analyzer. Keep this behavior when changing navigation; backgrounding still releases both pipelines through the existing lifecycle controls.
@@ -280,7 +283,7 @@ Short descriptions appear directly on measurement cards. The Physical tab explai
 - Visual displacement and marker coordinates use full unrotated camera-buffer pixels, not millimeters or display pixels. Tracking loss resets the reference.
 - Physical magnitude is smoothed gravity-suppressed acceleration; RMS uses unsmoothed magnitudes over the configured window; peak holds the highest smoothed value after warm-up. RMS can therefore exceed the displayed peak.
 - Raw axes are phone-fixed m/s² including gravity; the guide describes their directions and the approximate face-up stationary reading.
-- The guide explains separate graph units/timestamps, automatic scales, missing data, rounding, requested sampling versus UI refresh, filter settings, and reset behavior. No frequency or calibrated distance is claimed.
+- The guide explains separate graph units/timestamps, automatic scales, missing data, rounding, requested sampling versus UI refresh, filter settings, and reset behavior. Dominant physical frequency is an estimate; no visual frequency or calibrated distance is claimed.
 - Thresholds, RMS window, warm-up, filter constants, and reset gap shown in the guide come from `VibrationAnalyzer.Config()` defaults; requested sampling comes from `AccelerometerSource.SAMPLING_PERIOD_US`. The route currently uses those same defaults. If configurable sessions are introduced, pass the active configuration to the guide as well. UI refresh/graph descriptions must also stay synchronized if those policies change.
 - Thresholds remain explicitly labeled uncalibrated prototype values, not safety limits.
 
@@ -298,7 +301,7 @@ app/
     java/com/motionx/app/
       MainActivity.kt
       camera/                  # CameraPreview, CameraAnalyzer, MarkerTracker
-      sensors/                 # VibrationAnalyzer.kt + AccelerometerSource.kt
+      sensors/                 # VibrationAnalyzer, FrequencyAnalyzer, AccelerometerSource
       model/
         MotionXUiState.kt
         VibrationData.kt
@@ -333,6 +336,25 @@ The original target is a 90-minute hackathon build. Phase 0 and the parallel pip
 3. **Merge:** integrate Phase 2 into the shared UI state and controls, then test both pipelines together.
 4. **Final 15 minutes of the session:** freeze features, fix issues, polish, and rehearse the last stable phase. If time runs out after Phase 1, demo visual motion and leave Phase 2 explicitly pending.
 
-## Optional enhancements — after Phase 2
+## Phase 3 — Dominant vibration frequency
 
-These are no longer the definition of Phase 2. Once the visual and sensor implementations are stable, choose at most one: visual motion amplification, dominant-frequency analysis, or baseline-based anomaly detection. Label amplified motion clearly and retain the actual measured value. No optional enhancement is currently implemented.
+Implemented in `sensors/FrequencyAnalyzer.kt`, called by `VibrationAnalyzer` on the accelerometer thread for every sample, before flow conflation and ViewModel throttling. Input is signed, gravity-suppressed X/Y/Z in g. Avoid using magnitude: rectifying a single-axis sine can double its apparent frequency. Existing magnitude/RMS/peak/status formulas are unchanged.
+
+- Retain a rolling 2-second window with one preceding sample for interpolation, bounded to 1,024 samples. Recompute at most every 0.5 seconds.
+- Linearly resample by actual timestamps to 256 uniform points, remove each axis mean, apply a Hann window, compute a bounded direct DFT, and sum axis powers. Shared trigonometric tables avoid repeated trig work. This is a DFT, not an FFT implementation; no new dependency is needed.
+- Report the strongest bin in 0.5 Hz steps, with a nominal 2–40 Hz range. Upper limit is `min(40, 0.4 / largest sample interval in seconds)` for a conservative margin below Nyquist; observed sample rate is interval count divided by elapsed time. Resampling does not create additional sensor bandwidth.
+- Require centered vector RMS of at least 0.005 g and at least 60% of non-DC spectral power in the strongest bin plus its two neighbors. The strongest bin must lie in the supported range. These quality gates are prototype defaults, not calibrated confidence probabilities.
+- States: `COLLECTING` until a full window, `LOW_SIGNAL` for weak motion, `NO_CLEAR_PEAK` for ambiguous/out-of-range dominant content, and `READY` with Hz. Only READY contains a frequency. Current window estimates may take about 2 seconds to respond fully when motion changes.
+- Non-increasing timestamps, non-finite frequency inputs, or sensor gaps over 50 ms reset frequency collection. This is intentionally stricter than the existing 0.5-second reset of the amplitude analyzer; a frequency-only reset does not erase amplitude peak. A normal analyzer/session reset clears both. Stop/background/sensor failure clears the enclosing reading through existing state handling.
+- `VibrationData.frequency` defaults to null for source compatibility. `FrequencyData` includes `status`, nullable `hz`, `sampleRateHz`, and `upperLimitHz`. Histories may carry this metadata but continue plotting magnitude only. Camera interfaces are unchanged.
+- Physical shows a one-decimal Hz card, quality message, actual sample rate, and current upper range. Guide explains Hz versus g, sampling versus vibration frequency, and limitations.
+
+Limitations: strongest component is not necessarily the fundamental or motor RPM. Tilts, transients, harmonics, and mixed signals can affect results. Above-band signals can alias into plausible lower frequencies; the software range cap cannot replace hardware anti-alias filtering. No camera-frequency analysis or spectrum chart is included. Hardware accuracy remains unverified against a reference.
+
+Signal-processing background: [NI: FFTs and windowing](https://www.ni.com/en/shop/data-acquisition/measurement-fundamentals/analog-fundamentals/understanding-ffts-and-windowing.html). The window, thresholds, and range policies above are MotionX implementation choices.
+
+Validation: `./gradlew :app:assembleDebug :app:testDebugUnitTest --tests 'com.motionx.app.sensors.*' --tests 'com.motionx.app.viewmodel.MotionXViewModelTest' --no-daemon` passed. 26 tests cover signed-axis frequency (including off-bin and range endpoints), axes/DC, actual rate/jitter, weak signals, noise/competing tones, out-of-range peaks, invalid timestamps/gaps, invalid samples, stop-of-motion clearing, integration through the amplitude analyzer, and existing state/lifecycle contracts. Camera tests and lint were not rerun. Installed and launched on SM-S721B / Android 16. Screenshot showed real physical readings, camera TRACKING, the no-clear-frequency state, an observed rate of 124.7 samples/s, and a 2–40 Hz range. Stopping returned the screen to idle, cleared amplitude/history, and restored the frequency start prompt. No AndroidRuntime errors were returned during this brief check. This verifies integration and unavailable-state rendering, not the accuracy of a positive Hz result. No known-frequency source comparison performed.
+
+## Later optional enhancements
+
+Visual motion amplification and baseline-based anomaly detection remain unimplemented. Validate Phase 3 against a known-frequency source before expanding scope. If amplification is added, label it clearly and retain actual measured values.

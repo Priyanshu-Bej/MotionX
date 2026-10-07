@@ -136,6 +136,7 @@ private fun PhysicalTab(state: MotionXUiState) {
             stringResource(R.string.unit_g), Modifier.fillMaxWidth(),
             description = stringResource(R.string.physical_vibration_hint))
         Text(stringResource(R.string.g_explanation), style = MaterialTheme.typography.bodySmall)
+        FrequencyCard(state.vibration?.frequency)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             MeasurementCard(stringResource(R.string.rms), state.vibration?.rms,
                 stringResource(R.string.unit_g), Modifier.weight(1f),

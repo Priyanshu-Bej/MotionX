@@ -11,6 +11,16 @@ import kotlin.math.sqrt
 
 class VibrationAnalyzerTest {
 
+    @Test
+    fun frequencyUsesFullRateSignedAxesAndResetsWithAnalyzer() {
+        val analyzer = VibrationAnalyzer()
+        val result = analyzer.feed(4f, sample = sineOnX(0.1f, 10.0))
+        assertEquals(10f, result.frequency!!.hz!!, 0.01f)
+        analyzer.reset()
+        assertEquals(com.motionx.app.model.FrequencyStatus.COLLECTING,
+            analyzer.process(0f, 0f, STANDARD_GRAVITY, 5_000_000_000L).frequency!!.status)
+    }
+
     private val periodNanos = 10_000_000L // 100 Hz
 
     /** Feeds [seconds] of samples starting at [startNanos]; returns the last reading. */

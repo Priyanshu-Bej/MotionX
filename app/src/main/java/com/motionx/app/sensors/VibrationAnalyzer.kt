@@ -35,6 +35,7 @@ class VibrationAnalyzer(private val config: Config = Config()) {
     )
 
     private val gravity = FloatArray(3)
+    private val frequency = FrequencyAnalyzer()
     private var startNanos = 0L
     private var lastNanos = 0L
     private var hasSample = false
@@ -46,6 +47,7 @@ class VibrationAnalyzer(private val config: Config = Config()) {
     private var rmsSum = 0.0
 
     fun reset() {
+        frequency.reset()
         hasSample = false
         smoothedG = 0f
         peakG = 0f
@@ -92,6 +94,8 @@ class VibrationAnalyzer(private val config: Config = Config()) {
             peak = peakG,
             status = statusFor(rmsG),
             timestamp = timestampNanos,
+            frequency = frequency.process(lx / STANDARD_GRAVITY, ly / STANDARD_GRAVITY,
+                lz / STANDARD_GRAVITY, timestampNanos),
         )
     }
 

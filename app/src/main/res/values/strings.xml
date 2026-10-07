@@ -47,6 +47,15 @@
     <string name="unavailable_value">—</string>
     <string name="unit_pixels">px</string>
     <string name="unit_g">g</string>
+    <string name="unit_hz">Hz · cycles per second</string>
+    <string name="frequency_title">DOMINANT FREQUENCY</string>
+    <string name="frequency_collecting">Collecting 2 seconds of continuous sensor data…</string>
+    <string name="frequency_weak">Motion too weak for a frequency estimate.</string>
+    <string name="frequency_unclear">No clear dominant frequency in the supported range.</string>
+    <string name="frequency_ready">Strongest repeating component · estimate in 0.5 Hz steps</string>
+    <string name="frequency_idle">Start monitoring to estimate vibration frequency.</string>
+    <string name="frequency_sampling">Observed sensor rate: %1$.1f samples/s · current frequency range: 2–%2$.1f Hz</string>
+    <string name="guide_frequency">Hz means cycles per second: 10 Hz means about 10 repetitions each second. This estimates the strongest repeating component of the phone’s acceleration, not the remote marker’s motion or necessarily a machine’s rotation speed. It uses 2 seconds of signed, gravity-suppressed sensor axes and refreshes twice per second, in 0.5 Hz steps. The nominal range is 2–40 Hz; slower or uneven sampling lowers the upper limit. Observed sensor rate is samples per second, not vibration frequency. Weak motion, irregular shakes, or multiple competing frequencies may show —. Sensor gaps over 0.05 seconds restart collection; stopping also clears the estimate. Out-of-range vibration can alias into a misleading lower frequency. This prototype estimate still needs comparison with a known-frequency source.</string>
     <string name="measurement_guide">Measurement guide</string>
     <string name="tab_visual">Visual</string>
     <string name="tab_physical">Physical</string>
@@ -73,7 +82,7 @@
     <string name="guide_axes_title">Raw acceleration X / Y / Z</string>
     <string name="guide_axes">Measured in m/s², including gravity. In the phone’s natural portrait orientation: +X points right, +Y toward the top, +Z out of the screen. Axes stay fixed to the phone as the display rotates. Lying still face-up, values should be roughly X = 0, Y = 0, Z = +9.81 m/s².</string>
     <string name="guide_graphs_title">Reading the two graphs</string>
-    <string name="guide_graphs">Each shows the latest 10 seconds using its own timestamps. Visual history shows displacement in px; physical history shows smoothed acceleration in g. Vertical scales adjust automatically, so equal graph heights do not mean equal motion. Visual gaps indicate missing tracking; reacquisition starts from a new reference. Stop or backgrounding clears both histories. Frequency in Hz and distance in mm are not measured.</string>
+    <string name="guide_graphs">Each shows the latest 10 seconds using its own timestamps. Visual history shows displacement in px; physical history shows smoothed acceleration in g. Vertical scales adjust automatically, so equal graph heights do not mean equal motion. Visual gaps indicate missing tracking; reacquisition starts from a new reference. Stop or backgrounding clears both histories. These graphs do not show frequency. The separate dominant-frequency card estimates the phone’s vibration in Hz; distance in mm is not measured.</string>
     <string name="guide_processing_title">Sampling, filters and resets</string>
     <string name="guide_processing">Sensor sampling requests %1$d Hz; the actual rate depends on the device. Physical readings refresh up to 10 times/second; visual readings up to 15. Gravity estimation uses a %2$.2f s filter time constant; magnitude smoothing uses %3$.2f s. Slow motion can be partly removed with gravity. A sensor gap longer than %4$.1f s or a backwards timestamp resets the analyzer, including peak. Restarting monitoring also resets it.</string>
     <string name="guide_missing_title">Unavailable and rounded values</string>

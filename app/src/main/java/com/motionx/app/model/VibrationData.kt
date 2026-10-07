@@ -17,4 +17,5 @@ data class VibrationData(
     val peak: Float,
     val status: VibrationStatus,
     val timestamp: Long,
+    val frequency: FrequencyData? = null,
 )

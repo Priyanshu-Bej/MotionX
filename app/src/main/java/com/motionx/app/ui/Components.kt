@@ -20,12 +20,13 @@ fun MeasurementCard(
     unit: String,
     modifier: Modifier = Modifier,
     description: String? = null,
+    decimalPlaces: Int = 2,
 ) {
     Card(modifier = modifier) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(label, style = MaterialTheme.typography.labelSmall)
             Text(
-                text = value?.let { String.format(Locale.getDefault(), "%.2f", it) }
+                text = value?.let { String.format(Locale.getDefault(), "%.${decimalPlaces}f", it) }
                     ?: stringResource(R.string.unavailable_value),
                 style = MaterialTheme.typography.headlineLarge,
             )

@@ -29,6 +29,7 @@ internal fun MeasurementGuide(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.measurement_guide), style = MaterialTheme.typography.titleLarge)
         GuideSection(stringResource(R.string.guide_g_title), stringResource(R.string.guide_g))
+        GuideSection(stringResource(R.string.frequency_title), stringResource(R.string.guide_frequency))
         GuideSection(stringResource(R.string.visual_motion), stringResource(R.string.guide_visual))
         GuideSection(stringResource(R.string.guide_position_title), stringResource(R.string.guide_position))
         GuideSection(stringResource(R.string.physical_vibration), stringResource(R.string.guide_physical))

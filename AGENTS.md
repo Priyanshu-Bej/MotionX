@@ -2,7 +2,7 @@
 
 ## Project context
 
-Read `README.md` before working. MotionX is a local-only Android hackathon prototype targeting the Samsung Galaxy S24 FE. Keep the app and project name MotionX. Phase 0 is complete. Phase 1 camera work and the fellow developer's Phase 2 accelerometer branch are now integrated on develop. Keep sensor models stable and preserve both pipelines when updating shared state or lifecycle controls. User-reported basic marker, stationary, and combined-tab checks passed; remaining edge cases and measurement calibration are documented in the README. Use Kotlin, Compose, CameraX, and SensorManager as appropriate. Keep the architecture simple.
+Read `README.md` before working. MotionX is a local-only Android hackathon prototype targeting the Samsung Galaxy S24 FE. Keep the app and project name MotionX. Phase 0 is complete. Phase 1 camera work and the fellow developer's Phase 2 accelerometer branch are now integrated on develop. Phase 3 adds physical dominant-frequency estimation; known-frequency hardware validation is pending in README. Keep sensor models source-compatible and preserve both pipelines when updating shared state or lifecycle controls. User-reported basic marker, stationary, and combined-tab checks passed; remaining edge cases and measurement calibration are documented in the README. Use Kotlin, Compose, CameraX, and SensorManager as appropriate. Keep the architecture simple.
 
 ## Required developer/AI handoff
 
