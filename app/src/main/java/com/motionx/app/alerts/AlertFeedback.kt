@@ -6,6 +6,8 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.VibrationEffect
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationAttributes
 import android.os.Vibrator
 
@@ -14,12 +16,15 @@ class AlertFeedback(context: Context) {
     private val audio = context.getSystemService(AudioManager::class.java)
     private val vibrator = context.getSystemService(Vibrator::class.java)
     private var tone: ToneGenerator? = null
+    private val soundHandler = Handler(Looper.getMainLooper())
 
     fun play(alert: ThresholdAlert) {
+        stop()
         if (alert.sound && audio?.ringerMode == AudioManager.RINGER_MODE_NORMAL) {
-            runCatching {
-                val generator = tone ?: ToneGenerator(AudioManager.STREAM_NOTIFICATION, 70).also { tone = it }
-                generator.startTone(ToneGenerator.TONE_PROP_BEEP, 180)
+            // Three 400 ms buzzer bursts separated by 120 ms; fits within the 3 s cooldown.
+            playBuzzerBurst()
+            for (delayMillis in listOf(520L, 1_040L)) {
+                soundHandler.postDelayed({ playBuzzerBurst() }, delayMillis)
             }
         }
         if (alert.vibrate && audio?.ringerMode != AudioManager.RINGER_MODE_SILENT) {
@@ -38,7 +43,17 @@ class AlertFeedback(context: Context) {
         }
     }
 
+    private fun playBuzzerBurst() {
+        // Recheck mode for each pulse in case the user mutes the phone mid-alert.
+        if (audio?.ringerMode != AudioManager.RINGER_MODE_NORMAL) return
+        runCatching {
+            val generator = tone ?: ToneGenerator(AudioManager.STREAM_NOTIFICATION, 70).also { tone = it }
+            generator.startTone(ToneGenerator.TONE_PROP_NACK, 400)
+        }
+    }
+
     fun stop() {
+        soundHandler.removeCallbacksAndMessages(null)
         runCatching { tone?.stopTone() }
         runCatching { vibrator?.cancel() }
     }
