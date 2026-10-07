@@ -23,7 +23,7 @@
     <string name="physical_vibration">PHYSICAL VIBRATION</string>
     <string name="rms">RMS</string>
     <string name="peak">PEAK</string>
-    <string name="graph_title">VIBRATION HISTORY</string>
+    <string name="graph_title">PHYSICAL VIBRATION HISTORY</string>
     <string name="visual_graph_title">VISUAL MOTION HISTORY</string>
     <string name="visual_graph_waiting">Start monitoring with a marker in view to see its motion graph.</string>
     <string name="visual_graph_scale">0–%1$.2f px · last 10 seconds · auto scale</string>
@@ -47,4 +47,31 @@
     <string name="unavailable_value">—</string>
     <string name="unit_pixels">px</string>
     <string name="unit_g">g</string>
+    <string name="measurement_guide">Measurement guide</string>
+    <string name="close_guide">GOT IT</string>
+    <string name="visual_motion_hint">Distance from starting point</string>
+    <string name="physical_vibration_hint">Current · smoothed, gravity removed</string>
+    <string name="position_hint">Marker position in camera pixels</string>
+    <string name="rms_hint">Overall vibration level</string>
+    <string name="peak_hint">Highest smoothed reading since reset</string>
+    <string name="g_explanation">g measures acceleration: 1 g ≈ 9.81 m/s². A still phone should settle near 0 g here because gravity is removed.</string>
+    <string name="raw_axes_hint">Includes gravity. These are phone sensor axes, separate from the marker’s X/Y position.</string>
+    <string name="vibration_thresholds">Based on RMS:\nNORMAL: below %1$.2f g\nVIBRATING: %1$.2f g to below %2$.2f g\nHIGH: %2$.2f g or above\nPrototype thresholds · uncalibrated, not safety limits.</string>
+    <string name="guide_g_title">What does g mean?</string>
+    <string name="guide_g">g is acceleration relative to standard gravity, not grams. 1 g = 9.80665 m/s²; 0.10 g ≈ 0.98 m/s². It describes how quickly velocity changes, not distance or vibration frequency.</string>
+    <string name="guide_visual">Distance from the first tracked marker position, measured in camera pixels (px), not screen pixels or millimeters. Losing the marker or restarting sets a new reference. Keep the phone steady: camera movement also changes this reading.</string>
+    <string name="guide_position_title">Marker position X / Y</string>
+    <string name="guide_position">Marker coordinates in the full, unrotated camera image. These are absolute image positions, not movement amounts or phone sensor axes. Their directions may differ from the rotated preview.</string>
+    <string name="guide_physical">Smoothed magnitude of the phone’s acceleration after estimated gravity is removed, in g. A still phone should settle near zero. This measures the phone’s motion; moving a remote object alone does not make the phone vibrate. Tilting the phone can briefly affect this reading.</string>
+    <string name="guide_rms">Root mean square: the overall vibration level over the latest %1$.1f second(s), in g. Computed as the square root of the average squared, unsmoothed acceleration magnitudes after gravity removal. RMS drives the status label.</string>
+    <string name="guide_peak">Highest smoothed magnitude since the session started or the analyzer reset, in g. The first %1$.1f seconds are excluded for warm-up. This is not the raw impact peak. RMS uses unsmoothed samples, so it can sometimes exceed this smoothed peak.</string>
+    <string name="guide_status_title">How status is decided</string>
+    <string name="guide_axes_title">Raw acceleration X / Y / Z</string>
+    <string name="guide_axes">Measured in m/s², including gravity. In the phone’s natural portrait orientation: +X points right, +Y toward the top, +Z out of the screen. Axes stay fixed to the phone as the display rotates. Lying still face-up, values should be roughly X = 0, Y = 0, Z = +9.81 m/s².</string>
+    <string name="guide_graphs_title">Reading the two graphs</string>
+    <string name="guide_graphs">Each shows the latest 10 seconds using its own timestamps. Visual history shows displacement in px; physical history shows smoothed acceleration in g. Vertical scales adjust automatically, so equal graph heights do not mean equal motion. Visual gaps indicate missing tracking; reacquisition starts from a new reference. Stop or backgrounding clears both histories. Frequency in Hz and distance in mm are not measured.</string>
+    <string name="guide_processing_title">Sampling, filters and resets</string>
+    <string name="guide_processing">Sensor sampling requests %1$d Hz; the actual rate depends on the device. Physical readings refresh up to 10 times/second; visual readings up to 15. Gravity estimation uses a %2$.2f s filter time constant; magnitude smoothing uses %3$.2f s. Slow motion can be partly removed with gravity. A sensor gap longer than %4$.1f s or a backwards timestamp resets the analyzer, including peak. Restarting monitoring also resets it.</string>
+    <string name="guide_missing_title">Unavailable and rounded values</string>
+    <string name="guide_missing">— means no valid reading is available. 0.00 is rounded to two decimal places and may include small motion or sensor noise. More decimal places do not imply calibrated accuracy.</string>
 </resources>

@@ -14,7 +14,13 @@ import com.motionx.app.R
 import java.util.Locale
 
 @Composable
-fun MeasurementCard(label: String, value: Float?, unit: String, modifier: Modifier = Modifier) {
+fun MeasurementCard(
+    label: String,
+    value: Float?,
+    unit: String,
+    modifier: Modifier = Modifier,
+    description: String? = null,
+) {
     Card(modifier = modifier) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(label, style = MaterialTheme.typography.labelSmall)
@@ -25,6 +31,10 @@ fun MeasurementCard(label: String, value: Float?, unit: String, modifier: Modifi
             )
             Text(unit, style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            description?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

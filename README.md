@@ -14,7 +14,8 @@ Everything runs locally on the phone. Prioritize a working prototype, real senso
 - **Current phase:** Phase 1 and Phase 2 implementation integrated; combined device checks and measurement calibration are separate validation steps, not completed accuracy claims.
 - **Next step:** run a controlled stationary/moving-phone accuracy check and a real-marker demo together. Tune thresholds from those results before optional features; implementation and basic integration checks are complete.
 - **Open decisions:** on-device threshold calibration and observed sampling rate; default filter parameters are documented below.
-- **Latest change:** added the visual motion graph below the main measurement cards. Debug build and all 8 affected ViewModel tests passed, including history bounds, lost-tracking gaps, sensor-state preservation, and resets. Updated APK installed and launched successfully on the connected S24 FE. Camera/sensor algorithm tests and lint were not repeated for this graph-only change. Physical-marker graph validation remains pending.
+- **Latest change:** added plain-language measurement-card descriptions, an inline explanation of g, RMS status boundaries, and a scrollable **Measurement guide** accessible below the tagline. The guide covers every displayed metric, raw axes, graph scales, filtering, sampling, resets, and unavailable/rounded values. Signal processing and shared interfaces are unchanged. `:app:assembleDebug --no-daemon` passed; APK installation and launch succeeded on the S24 FE. Screenshot/UI inspection confirmed card descriptions and the inline g explanation, including live readings. Guide opening/scrolling/dismissal was not confirmed during this brief check. No unit suite or lint rerun for this presentation-only change; controlled marker and calibration acceptance remain pending.
+- **Previous graph validation:** debug build and all 8 affected ViewModel tests passed, including history bounds, lost-tracking gaps, sensor-state preservation, and resets. Updated APK installed and launched successfully on the connected S24 FE. Camera/sensor algorithm tests and lint were not repeated for that graph-only change. Physical-marker graph validation remains pending.
 
 ## Keep this README current
 
@@ -259,6 +260,17 @@ Phase 0 provides the shell. Phase 1 activates the camera and visual readings. Ph
 
 Use a dark background, subtle rounded cards, large readable numbers, one primary accent color, minimal shadows, and restrained animation. Use neutral/green for normal, amber for warning, and red for high vibration. Show permission, tracking-loss, and sensor availability states clearly. Keep the style like a professional engineering instrument.
 
+### Measurement explanations in the app
+
+Short descriptions appear directly on measurement cards. The main screen explains **1 g ≈ 9.81 m/s²**, gravity removal, raw axes including gravity, and the RMS status boundaries. **Measurement guide** opens a scrollable, dismissible dialog without changing monitoring state.
+
+- Visual displacement and marker coordinates use full unrotated camera-buffer pixels, not millimeters or display pixels. Tracking loss resets the reference.
+- Physical magnitude is smoothed gravity-suppressed acceleration; RMS uses unsmoothed magnitudes over the configured window; peak holds the highest smoothed value after warm-up. RMS can therefore exceed the displayed peak.
+- Raw axes are phone-fixed m/s² including gravity; the guide describes their directions and the approximate face-up stationary reading.
+- The guide explains separate graph units/timestamps, automatic scales, missing data, rounding, requested sampling versus UI refresh, filter settings, and reset behavior. No frequency or calibrated distance is claimed.
+- Thresholds, RMS window, warm-up, filter constants, and reset gap shown in the guide come from `VibrationAnalyzer.Config()` defaults; requested sampling comes from `AccelerometerSource.SAMPLING_PERIOD_US`. The route currently uses those same defaults. If configurable sessions are introduced, pass the active configuration to the guide as well. UI refresh/graph descriptions must also stay synchronized if those policies change.
+- Thresholds remain explicitly labeled uncalibrated prototype values, not safety limits.
+
 ## Developer ownership and structure
 
 The project uses one app module and no dependency injection or repository layers. Phase 1 owns `camera/` and visual UI; the fellow developer owns `sensors/` and sensor tests.
@@ -280,6 +292,7 @@ app/
         VisualMotionData.kt
       ui/
         MainScreen.kt          # Screen and Compose preview
+        MeasurementGuide.kt    # Scrollable parameter explanations and status boundaries
         MotionXRoute.kt        # Permission, lifecycle, sensor collection
         VibrationGraph.kt      # Bounded physical-vibration trace
         VisualMotionGraph.kt   # Visual displacement trace with tracking gaps
